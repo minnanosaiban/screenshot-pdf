@@ -82,8 +82,8 @@ shareBtn.innerHTML = shareApiPresent
 shareHintEl.textContent = shareApiPresent
   ? ""
   : secureContext
-    ? "このブラウザは直接の送信に対応していないため、PDFを保存します（保存後にメール等へ添付できます）"
-    : "HTTP接続では送信機能が無効になるため、PDFを保存します（HTTPSで開くと直接送信できます）";
+    ? "※このブラウザは直接の送信に対応していないため、PDFを保存します（保存後にメール等へ添付できます）"
+    : "※HTTP接続では送信機能が無効になるため、PDFを保存します（HTTPSで開くと直接送信できます）";
 shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
 
 // ---- ファイル選択 ----

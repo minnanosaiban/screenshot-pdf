@@ -149,7 +149,7 @@
         <input id="file" type="file" accept="image/*" multiple>
       </label>
       <div><span id="count" class="badge">未選択</span></div>
-      <div class="hint">並び順は選択ダイアログで返ってきた順です。各コマの◀▶で順番を入れ替えられます</div>
+      <div class="hint">※並び順は選択ダイアログで返ってきた順です。各コマの◀▶で順番を入れ替えられます</div>
     </div>
 
     <div class="section">
@@ -165,7 +165,7 @@
         </button>
         <button id="share" disabled></button><!-- 中身(アイコン・文言)はapp.jsが対応状況を見て設定 -->
       </div>
-      <div class="hint">メール・LINE・Xなどで共有できます</div>
+      <div class="hint">※メール・LINE・Xなどで共有できます</div>
       <div class="hint" id="shareHint"></div>
     </div>
 
@@ -280,8 +280,8 @@ shareBtn.innerHTML = shareApiPresent
 shareHintEl.textContent = shareApiPresent
   ? ""
   : secureContext
-    ? "このブラウザは直接の送信に対応していないため、PDFを保存します（保存後にメール等へ添付できます）"
-    : "HTTP接続では送信機能が無効になるため、PDFを保存します（HTTPSで開くと直接送信できます）";
+    ? "※このブラウザは直接の送信に対応していないため、PDFを保存します（保存後にメール等へ添付できます）"
+    : "※HTTP接続では送信機能が無効になるため、PDFを保存します（HTTPSで開くと直接送信できます）";
 shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
 
 // ---- ファイル選択 ----
