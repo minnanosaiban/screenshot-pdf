@@ -79,11 +79,13 @@ shareBtn.innerHTML = shareApiPresent
   : `${ICON_DOWNLOAD}<span>PDF保存</span>`;
 // 「メール・LINE・Xなどで共有できます」は常時表示の固定文言(HTML側)なので、ここでは
 // 共有できない場合の注記だけを出す。共有できる場合は固定文言だけで説明が足りるため空にする。
+// 表示できない理由がHTTP接続(非セキュアコンテキスト)かブラウザ非対応かはsecureContextで
+// 区別できるが、「HTTP/HTTPS」は一般利用者には伝わりにくく不安を煽るだけなので、
+// 案内文は理由を問わず1つに統一する（本番はCloudflare Pagesで常時HTTPS配信のため、
+// このHTTP接続のケースはローカルでのテスト時以外はまず発生しない）。
 shareHintEl.textContent = shareApiPresent
   ? ""
-  : secureContext
-    ? "※このブラウザは直接の送信に対応していないため、PDFを保存します（保存後にメール等へ添付できます）"
-    : "※HTTP接続では送信機能が無効になるため、PDFを保存します（HTTPSで開くと直接送信できます）";
+  : "※このブラウザでは直接の送信に対応していないため、PDFを保存します（保存後にメール等へ添付できます）";
 shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
 
 // ---- ファイル選択 ----
