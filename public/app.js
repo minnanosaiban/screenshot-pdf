@@ -31,10 +31,12 @@ const pagesEl = $("pages");
 
 const setStatus = (m) => { statusEl.textContent = m || ""; };
 
-shareBtn.textContent = shareApiPresent ? "📤 PDFを共有" : "⬇ PDFをダウンロード";
+// スマホでの利用が前提のため、主経路はメール・チャットへの直接送信（Web Share）。
+// 非対応ブラウザ（主にPCのFirefoxなど）のときだけ「保存」に文言を切り替える。
+shareBtn.textContent = shareApiPresent ? "✉️ メール・チャットで送る" : "⬇ PDFを保存";
 shareHintEl.textContent = shareApiPresent
-  ? "対応アプリ（メール等）の共有シートが開きます"
-  : "このブラウザは共有に対応していないため、ダウンロードします";
+  ? "タップすると送り先（メール・LINEなど）を選べます"
+  : "このブラウザは直接の送信に対応していないため、PDFを保存します（保存後にメール等へ添付できます）";
 
 // ---- ファイル選択 ----
 fileInput.onchange = (e) => setFiles(Array.from(e.target.files || []));
@@ -144,7 +146,7 @@ buildBtn.onclick = async () => {
     const bytes = await out.save();
     outputBlob = new Blob([bytes], { type: "application/pdf" });
     shareBtn.disabled = false;
-    setStatus(`完了：${n}枚を${numPages}ページのA4 PDFにまとめました。「${shareBtn.textContent}」で保存してください。`);
+    setStatus(`完了：${n}枚を${numPages}ページのA4 PDFにまとめました。左の「${shareBtn.textContent}」をタップしてください。`);
   } catch (err) {
     console.error(err);
     setStatus("PDFの作成に失敗しました。画像の形式を確認するか、枚数を減らしてもう一度お試しください。");
