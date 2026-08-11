@@ -219,7 +219,11 @@ let building = false;
 // Web Share（ファイル共有）に対応しているブラウザかどうかは、ページ読み込み時に一度だけ判定して
 // ボタンの見た目を固定する。実際に使えるかの最終判定は共有ボタン押下時に navigator.canShare() で行う
 // （API はあってもファイル種別によっては使えないことがあるため、その場合はダウンロードへ自動で切り替える）。
-const shareApiPresent = typeof navigator.share === "function" && typeof navigator.canShare === "function";
+// なお Web Share は仕様上 HTTPS（またはlocalhost）でないとブラウザに存在すら出現しない。
+// 案内文で「ブラウザが対応していない」のか「HTTPだから今だけ使えない」のかを区別するため、
+// isSecureContext を分けて見ておく。
+const secureContext = window.isSecureContext;
+const shareApiPresent = secureContext && typeof navigator.share === "function" && typeof navigator.canShare === "function";
 
 // アイコン（Bootstrap Icons, MIT License, https://github.com/twbs/icons）を必要な分だけ生SVGで埋め込む。
 // Webフォント・CDNは使わない（読み込み待ちでのチラつきが起きず、外部通信も発生しない）。
@@ -278,7 +282,9 @@ shareBtn.innerHTML = shareApiPresent
   : `${ICON_DOWNLOAD}<span>PDFを保存</span>`;
 shareHintEl.textContent = shareApiPresent
   ? "タップすると送り先（メール・LINEなど）を選べます"
-  : "このブラウザは直接の送信に対応していないため、PDFを保存します（保存後にメール等へ添付できます）";
+  : secureContext
+    ? "このブラウザは直接の送信に対応していないため、PDFを保存します（保存後にメール等へ添付できます）"
+    : "HTTP接続では送信機能が無効になるため、PDFを保存します（HTTPSで開くと直接送信できます）";
 
 // ---- ファイル選択 ----
 fileInput.onchange = (e) => setFiles(Array.from(e.target.files || []));
