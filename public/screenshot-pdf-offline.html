@@ -228,6 +228,11 @@ const statusEl = $("status");
 const pagesEl = $("pages");
 
 const setStatus = (m) => { statusEl.textContent = m || ""; };
+// モバイル幅（サイドバーが本文の上に縦積みになるブレークポイント。CSSの@mediaと同じ768px）では、
+// スクショ選択直後にプレビュー（本文）が画面外にあり「反応がない」ように見えるため、自動で本文へスクロールする。
+const scrollToMain = () => {
+  if (window.matchMedia("(max-width: 768px)").matches) statusEl.scrollIntoView({ behavior: "smooth", block: "start" });
+};
 
 // スマホでの利用が前提のため、主経路はメール・チャットへの直接送信（Web Share）。
 // 非対応ブラウザ（主にPCのFirefoxなど）のときだけ「保存」に文言を切り替える。
@@ -251,6 +256,7 @@ function setFiles(list) {
   outputBlob = null;
   shareBtn.disabled = true;
   renderPreview();
+  if (files.length > 0) scrollToMain();
 }
 
 function removeAt(i) {
