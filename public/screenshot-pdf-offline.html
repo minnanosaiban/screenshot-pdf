@@ -120,6 +120,7 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="app-title">スクショ PDF化</div>
+      <div class="app-sub">※スマホのスクショを2×2で配置したPDFに変換するアプリです。</div>
       <div class="app-sub">※外部への送信はなくブラウザ内で完結するアプリです。画像もPDFもサーバーには送信されません。</div>
     </div>
 
@@ -130,7 +131,7 @@
           <path d="M4.502 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/>
           <path d="M14.002 13a2 2 0 0 1-2 2h-10a2 2 0 0 1-2-2V5A2 2 0 0 1 2 3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-1.998 2M14 2H4a1 1 0 0 0-1 1h9.002a2 2 0 0 1 2 2v7A1 1 0 0 0 15 11V3a1 1 0 0 0-1-1M2.002 4a1 1 0 0 0-1 1v8l2.646-2.354a.5.5 0 0 1 .63-.062l2.66 1.773 3.71-3.71a.5.5 0 0 1 .577-.094l1.777 1.947V5a1 1 0 0 0-1-1z"/>
         </svg>
-        <span>スクショを選ぶ（複数選択可）</span>
+        <span>スクショを選ぶ</span>
         <input id="file" type="file" accept="image/*" multiple>
       </label>
       <div><span id="count" class="badge">未選択</span></div>
@@ -151,7 +152,7 @@
     </div>
 
     <div class="section">
-      <div class="shead">■ 送る</div>
+      <div class="shead">■ 共有</div>
       <button id="share" disabled></button><!-- 中身(アイコン・文言)はapp.jsが対応状況を見て設定 -->
       <div class="hint" id="shareHint"></div>
     </div>
