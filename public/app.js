@@ -132,7 +132,7 @@ function renderPreview() {
   countEl.textContent = n ? `${n}枚選択中` : "未選択";
   countEl.className = "badge" + (n ? " ok" : "");
   const numPages = Math.ceil(n / 4);
-  pageInfoEl.textContent = n ? `${n}枚 → ${numPages}ページ` : "";
+  pageInfoEl.textContent = n ? `※${n}枚 → ${numPages}ページ` : "";
 
   if (n === 0) {
     setStatus("左の「スクショを選ぶ」で画像を選ぶと、A4ページの割り付けがここに表示されます。");
