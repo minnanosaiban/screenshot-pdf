@@ -34,12 +34,6 @@ const ICON_DOWNLOAD =
 const ICON_X =
   '<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">' +
   '<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>';
-const ICON_CHEVRON_LEFT =
-  '<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">' +
-  '<path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/></svg>';
-const ICON_CHEVRON_RIGHT =
-  '<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">' +
-  '<path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/></svg>';
 
 // ---- 要素 ----
 const $ = (id) => document.getElementById(id);
@@ -170,14 +164,14 @@ function renderPreview() {
         prev.className = "move prev";
         prev.title = "1つ前へ";
         prev.setAttribute("aria-label", "1つ前へ");
-        prev.innerHTML = ICON_CHEVRON_LEFT;
+        prev.textContent = "◀";
         prev.disabled = i === 0;
         prev.onclick = () => moveTo(i, -1);
         const next = document.createElement("button");
         next.className = "move next";
         next.title = "1つ後ろへ";
         next.setAttribute("aria-label", "1つ後ろへ");
-        next.innerHTML = ICON_CHEVRON_RIGHT;
+        next.textContent = "▶";
         next.disabled = i === n - 1;
         next.onclick = () => moveTo(i, 1);
         cell.appendChild(img);

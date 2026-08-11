@@ -117,22 +117,29 @@
   }
   .cell { position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
   .cell img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
-  .cell .idx { position: absolute; top: 0; left: 2px; font-size: 11px; color: #9aa; }
+  /* 四隅のコントロール（番号・除外・並べ替え）は、スクショの内容が明るくても暗くても埋もれないよう
+     白い円形チップの上に乗せる。overflow:hiddenで切れないよう、負のオフセットは使わない。 */
+  .cell .idx {
+    position: absolute; top: 3px; left: 3px; display: flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 1px 3px rgba(0,0,0,.25);
+    font-size: 11px; color: #555; font-weight: 600;
+  }
   .cell .rm {
-    position: absolute; top: -2px; right: -2px; border: none; background: transparent;
-    color: #aab; line-height: 1; cursor: pointer; padding: 5px; display: flex;
+    position: absolute; top: 3px; right: 3px; display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 1px 3px rgba(0,0,0,.25);
+    border: none; cursor: pointer; color: #555; padding: 0;
   }
-  .cell .rm svg { width: 11px; height: 11px; }
-  .cell .rm:hover { color: #ff4b4b; }
+  .cell .rm svg { width: 13px; height: 13px; }
+  .cell .rm:hover { color: #fff; background: #ff4b4b; }
   .cell .move {
-    position: absolute; bottom: -2px; border: none; background: transparent;
-    color: #aab; line-height: 1; cursor: pointer; padding: 5px; display: flex;
+    position: absolute; bottom: 3px; display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 1px 3px rgba(0,0,0,.25);
+    border: none; cursor: pointer; color: #555; font-size: 14px; font-weight: 700; line-height: 1; padding: 0;
   }
-  .cell .move.prev { left: -2px; }
-  .cell .move.next { right: -2px; }
-  .cell .move svg { width: 11px; height: 11px; }
-  .cell .move:hover:not(:disabled) { color: #ff4b4b; }
-  .cell .move:disabled { opacity: .25; cursor: not-allowed; }
+  .cell .move.prev { left: 3px; }
+  .cell .move.next { right: 3px; }
+  .cell .move:hover:not(:disabled) { color: #fff; background: #ff4b4b; }
+  .cell .move:disabled { opacity: .35; cursor: not-allowed; background: rgba(255,255,255,.6); box-shadow: none; }
 
   @media (max-width: 768px) {
     .sidebar { position: static; width: 100%; bottom: auto; }
@@ -161,7 +168,7 @@
         <input id="file" type="file" accept="image/*" multiple>
       </label>
       <div><span id="count" class="badge">未選択</span></div>
-      <div class="hint">※並び順は選択ダイアログで返ってきた順です。各コマの左右のボタンで順番を入れ替えられます</div>
+      <div class="hint">※並び順は選択ダイアログで返ってきた順です。各コマの◀▶で順番を入れ替えられます</div>
     </div>
 
     <div class="section">
@@ -246,12 +253,6 @@ const ICON_DOWNLOAD =
 const ICON_X =
   '<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">' +
   '<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>';
-const ICON_CHEVRON_LEFT =
-  '<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">' +
-  '<path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/></svg>';
-const ICON_CHEVRON_RIGHT =
-  '<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">' +
-  '<path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/></svg>';
 
 // ---- 要素 ----
 const $ = (id) => document.getElementById(id);
@@ -382,14 +383,14 @@ function renderPreview() {
         prev.className = "move prev";
         prev.title = "1つ前へ";
         prev.setAttribute("aria-label", "1つ前へ");
-        prev.innerHTML = ICON_CHEVRON_LEFT;
+        prev.textContent = "◀";
         prev.disabled = i === 0;
         prev.onclick = () => moveTo(i, -1);
         const next = document.createElement("button");
         next.className = "move next";
         next.title = "1つ後ろへ";
         next.setAttribute("aria-label", "1つ後ろへ");
-        next.innerHTML = ICON_CHEVRON_RIGHT;
+        next.textContent = "▶";
         next.disabled = i === n - 1;
         next.onclick = () => moveTo(i, 1);
         cell.appendChild(img);
