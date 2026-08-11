@@ -75,8 +75,8 @@ mobileQuery.addEventListener("change", placeSecondaryInfo);
 // ※ shareBtn.textContent は後続コードでもラベル文言の取得に使う（SVGはテキストノードを持たないため、
 //    innerHTML に <svg>+<span> を入れても textContent は <span> の文字列だけを正しく返す）。
 shareBtn.innerHTML = shareApiPresent
-  ? `${ICON_SEND}<span>メール・チャットで送る</span>`
-  : `${ICON_DOWNLOAD}<span>PDFを保存</span>`;
+  ? `${ICON_SEND}<span>PDF共有</span>`
+  : `${ICON_DOWNLOAD}<span>PDF保存</span>`;
 shareHintEl.textContent = shareApiPresent
   ? "タップすると送り先（メール・LINEなど）を選べます"
   : secureContext
