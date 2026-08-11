@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>スクショ PDF化</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<!-- PDF生成のみ利用。画像・PDFはどこにも送信されません。読み込むのはライブラリのJSだけです。 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; color: #31333f; background: #fff;
+    font-family: "Source Sans Pro", system-ui, "Segoe UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  }
+
+  /* ── サイドバー（Streamlit風） ── */
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 300px; overflow-y: auto;
+    background: #f0f2f6; padding: 28px 20px 48px;
+    display: flex; flex-direction: column; gap: 28px;
+  }
+  .brand { display: flex; flex-direction: column; gap: 4px; }
+  .app-title {
+    font-weight: 400; font-size: 26px; line-height: 1.35; text-align: center;
+    background: #000; color: #fff; padding: 10px 12px; border-radius: 8px;
+  }
+  .app-sub { font-size: 12px; color: #6b6f76; }
+  .section { display: flex; flex-direction: column; gap: 8px; }
+  .row { display: flex; gap: 8px; }
+  .sidebar .row button { width: auto; flex: 1 1 0; min-width: 0; }
+  .shead { font-weight: 700; font-size: 15px; margin: 0 0 2px; }
+  .cap { font-size: 12.5px; color: #6b6f76; margin: 4px 0 -2px; }
+  .hint { font-size: 11.5px; color: #8a8f98; }
+
+  .sidebar .filebtn, .sidebar button, .sidebar input[type="text"] {
+    width: 100%; font-size: 14px; border-radius: 8px; border: 1px solid #d5d7dd;
+    background: #fff; color: #31333f; font-family: inherit;
+  }
+  .sidebar .filebtn, .sidebar button { padding: 9px 12px; text-align: center; cursor: pointer; font-weight: 500; }
+  .sidebar .filebtn:hover, .sidebar button:hover:not(:disabled) { border-color: #ff4b4b; color: #ff4b4b; }
+  .sidebar button.primary { background: #ff4b4b; border-color: #ff4b4b; color: #fff; font-weight: 600; }
+  .sidebar button.primary:hover:not(:disabled) { background: #e63c3c; color: #fff; }
+  .sidebar button:disabled { opacity: .55; cursor: not-allowed; background: #f0f1f3; }
+  .sidebar .filebtn:has(input:disabled) { opacity: .55; cursor: not-allowed; }
+  .filebtn input { display: none; }
+
+  .badge { display: inline-block; font-size: 12px; padding: 3px 9px; border-radius: 999px;
+           border: 1px solid #cfd2d8; background: #fff; color: #555; font-variant-numeric: tabular-nums; }
+  .badge.ok { background: #e8f5e9; border-color: #c8e6c9; color: #256029; }
+  .note { font-size: 12px; color: #6b6f76; line-height: 1.55; }
+  .link { font-size: 13px; color: #1f6feb; text-decoration: none; }
+  .link:hover { text-decoration: underline; }
+  .disc { font-size: 12px; color: #6b6f76; }
+
+  /* ── 本文（ページプレビュー） ── */
+  .main { margin-left: 300px; min-height: 100vh; padding: 24px 40px 80px; }
+  .main-title { font-size: 26px; font-weight: 700; margin: 0 0 4px; }
+  #status { font-size: 13px; color: #555; margin: 0 0 18px; min-height: 20px; line-height: 1.6; }
+
+  #pages { display: flex; flex-direction: column; align-items: center; gap: 28px; }
+  #pages.building { pointer-events: none; opacity: .6; }
+  .page { display: flex; flex-direction: column; gap: 6px; max-width: 100%; }
+  .phead { font-size: 13px; color: #555; }
+
+  .a4 {
+    width: 420px; max-width: 100%; aspect-ratio: 210 / 297;
+    background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.12);
+    display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+    gap: 14px; padding: 20px;
+  }
+  .cell { position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .cell img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+  .cell .idx { position: absolute; top: 0; left: 2px; font-size: 11px; color: #9aa; }
+  .cell .rm {
+    position: absolute; top: -2px; right: -2px; border: none; background: transparent;
+    color: #aab; font-size: 15px; line-height: 1; cursor: pointer; padding: 4px;
+  }
+  .cell .rm:hover { color: #ff4b4b; }
+
+  @media (max-width: 768px) {
+    .sidebar { position: static; width: 100%; bottom: auto; }
+    .main { margin-left: 0; padding: 16px 14px 60px; }
+    .a4 { width: 100%; max-width: 340px; }
+  }
+</style>
+</head>
+<body>
+  <!-- ── サイドバー ── -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="app-title">スクショ PDF化</div>
+      <div class="app-sub">※外部への送信はなくブラウザ内で完結するアプリです。画像もPDFもサーバーには送信されません。</div>
+    </div>
+
+    <div class="section">
+      <div class="shead">■ スクショを選択</div>
+      <label class="filebtn">🖼 スクショを選ぶ（複数選択可）<input id="file" type="file" accept="image/*" multiple></label>
+      <div><span id="count" class="badge">未選択</span></div>
+      <div class="hint">並び順は選択ダイアログで返ってきた順のままです（並べ替えはできません）</div>
+    </div>
+
+    <div class="section">
+      <div class="shead">■ PDFを作成</div>
+      <div class="cap">A4・1ページに4枚（2×2、縦横比を保ったまま収めます）</div>
+      <div id="pageInfo" class="cap"></div>
+      <button id="build" class="primary" disabled>PDFを作成</button>
+    </div>
+
+    <div class="section">
+      <div class="shead">■ 共有・保存</div>
+      <button id="share" disabled>📤 PDFを共有</button>
+      <div class="hint" id="shareHint"></div>
+    </div>
+
+    <div class="note">処理はすべてお使いのブラウザ内で行われ、<b>スクショもPDFもどこにも送信されません</b>。</div>
+
+    <div class="section">
+      <div class="shead">■ このアプリについて</div>
+      <div class="cap">※スクショを選んでA4のPDFにまとめ、そのまま共有できるアプリです。オフライン版も用意しています。</div>
+      <a class="link" href="screenshot-pdf-offline.html" download>⬇ オフライン版をダウンロード</a>
+    </div>
+
+    <div class="section">
+      <div class="shead">■ 免責事項</div>
+      <div class="cap">※本ツールは無保証で提供されます（現状有姿）。なお、本アプリのコードは GitHub に公開しています。</div>
+      <div class="cap">※処理はお使いのブラウザ内で完結し画像・PDFは外部送信されませんが、ご利用環境に起因する不具合について作成者は責任を負いません。</div>
+      <a class="link" href="https://github.com/minnanosaiban/screenshot-pdf" target="_blank" rel="noopener">ソースコード（GitHub）↗</a>
+    </div>
+  </aside>
+
+  <!-- ── 本文 ── -->
+  <main class="main">
+    <h1 class="main-title">プレビュー</h1>
+    <div id="status">左の「🖼 スクショを選ぶ」で画像を選ぶと、A4ページの割り付けがここに表示されます。</div>
+    <div id="pages"></div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

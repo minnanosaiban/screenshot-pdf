@@ -1,0 +1,16 @@
+{
+  "name": "screenshot-pdf",
+  "private": true,
+  "version": "0.1.0",
+  "description": "スクショを並べてA4のPDFにまとめるアプリ（ブラウザ完結・Cloudflare Pages）",
+  "scripts": {
+    "build:offline": "node scripts/build-offline.js",
+    "predev": "npm run build:offline",
+    "predeploy": "npm run build:offline",
+    "dev": "wrangler pages dev",
+    "deploy": "wrangler pages deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.105.0"
+  }
+}

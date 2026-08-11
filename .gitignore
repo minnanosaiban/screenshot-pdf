@@ -1,0 +1,7 @@
+node_modules/
+.wrangler/
+.dev.vars
+
+# 動作確認用に置いたスクショ・生成PDFは絶対にコミットしない
+/local-test/
+*.pdf
