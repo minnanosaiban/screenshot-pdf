@@ -30,6 +30,12 @@ const ICON_DOWNLOAD =
 const ICON_X =
   '<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">' +
   '<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>';
+const ICON_CHEVRON_LEFT =
+  '<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">' +
+  '<path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/></svg>';
+const ICON_CHEVRON_RIGHT =
+  '<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">' +
+  '<path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/></svg>';
 
 // ---- 要素 ----
 const $ = (id) => document.getElementById(id);
@@ -84,6 +90,19 @@ function removeAt(i) {
   renderPreview();
 }
 
+// 選択ダイアログが返す順序はタップ順と必ずしも一致しない（機種・ピッカー依存）ため、
+// 1つ前/後ろの画像と入れ替えて順序を直せるようにする。ページをまたいだ移動も同じロジックで扱える。
+function moveTo(i, dir) {
+  if (building) return;   // PDF作成中に配列を横から書き換えると生成ループが壊れるため無視
+  const j = i + dir;
+  if (j < 0 || j >= files.length) return;
+  [files[i], files[j]] = [files[j], files[i]];
+  [objectUrls[i], objectUrls[j]] = [objectUrls[j], objectUrls[i]];
+  outputBlob = null;
+  shareBtn.disabled = true;
+  renderPreview();
+}
+
 // ---- プレビュー（実際のPDFと同じ 2×2 割り付けをブラウザ上で再現） ----
 function renderPreview() {
   pagesEl.innerHTML = "";
@@ -125,9 +144,25 @@ function renderPreview() {
         rm.setAttribute("aria-label", "この1枚を除外");
         rm.innerHTML = ICON_X;
         rm.onclick = () => removeAt(i);
+        const prev = document.createElement("button");
+        prev.className = "move prev";
+        prev.title = "1つ前へ";
+        prev.setAttribute("aria-label", "1つ前へ");
+        prev.innerHTML = ICON_CHEVRON_LEFT;
+        prev.disabled = i === 0;
+        prev.onclick = () => moveTo(i, -1);
+        const next = document.createElement("button");
+        next.className = "move next";
+        next.title = "1つ後ろへ";
+        next.setAttribute("aria-label", "1つ後ろへ");
+        next.innerHTML = ICON_CHEVRON_RIGHT;
+        next.disabled = i === n - 1;
+        next.onclick = () => moveTo(i, 1);
         cell.appendChild(img);
         cell.appendChild(idx);
         cell.appendChild(rm);
+        cell.appendChild(prev);
+        cell.appendChild(next);
       }
       a4.appendChild(cell);
     }
