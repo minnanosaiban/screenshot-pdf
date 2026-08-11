@@ -56,7 +56,11 @@
     width: 100%; font-size: 14px; border-radius: 8px; border: 1px solid #d5d7dd;
     background: #fff; color: #31333f; font-family: inherit;
   }
-  .sidebar .filebtn, .sidebar button { padding: 9px 12px; text-align: center; cursor: pointer; font-weight: 500; }
+  .sidebar .filebtn, .sidebar button {
+    padding: 9px 12px; cursor: pointer; font-weight: 500;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+  }
+  .icon { width: 1em; height: 1em; flex: none; }
   .sidebar .filebtn:hover, .sidebar button:hover:not(:disabled) { border-color: #ff4b4b; color: #ff4b4b; }
   .sidebar button.primary { background: #ff4b4b; border-color: #ff4b4b; color: #fff; font-weight: 600; }
   .sidebar button.primary:hover:not(:disabled) { background: #e63c3c; color: #fff; }
@@ -93,8 +97,9 @@
   .cell .idx { position: absolute; top: 0; left: 2px; font-size: 11px; color: #9aa; }
   .cell .rm {
     position: absolute; top: -2px; right: -2px; border: none; background: transparent;
-    color: #aab; font-size: 15px; line-height: 1; cursor: pointer; padding: 4px;
+    color: #aab; line-height: 1; cursor: pointer; padding: 5px; display: flex;
   }
+  .cell .rm svg { width: 11px; height: 11px; }
   .cell .rm:hover { color: #ff4b4b; }
 
   @media (max-width: 768px) {
@@ -114,7 +119,14 @@
 
     <div class="section">
       <div class="shead">■ スクショを選択</div>
-      <label class="filebtn">🖼 スクショを選ぶ（複数選択可）<input id="file" type="file" accept="image/*" multiple></label>
+      <label class="filebtn">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4.502 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/>
+          <path d="M14.002 13a2 2 0 0 1-2 2h-10a2 2 0 0 1-2-2V5A2 2 0 0 1 2 3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-1.998 2M14 2H4a1 1 0 0 0-1 1h9.002a2 2 0 0 1 2 2v7A1 1 0 0 0 15 11V3a1 1 0 0 0-1-1M2.002 4a1 1 0 0 0-1 1v8l2.646-2.354a.5.5 0 0 1 .63-.062l2.66 1.773 3.71-3.71a.5.5 0 0 1 .577-.094l1.777 1.947V5a1 1 0 0 0-1-1z"/>
+        </svg>
+        <span>スクショを選ぶ（複数選択可）</span>
+        <input id="file" type="file" accept="image/*" multiple>
+      </label>
       <div><span id="count" class="badge">未選択</span></div>
       <div class="hint">並び順は選択ダイアログで返ってきた順のままです（並べ替えはできません）</div>
     </div>
@@ -123,12 +135,18 @@
       <div class="shead">■ PDFを作成</div>
       <div class="cap">A4・1ページに4枚（2×2、縦横比を保ったまま収めます）</div>
       <div id="pageInfo" class="cap"></div>
-      <button id="build" class="primary" disabled>PDFを作成</button>
+      <button id="build" class="primary" disabled>
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+          <path d="M4.603 14.087a.8.8 0 0 1-.438-.42c-.195-.388-.13-.776.08-1.102.198-.307.526-.568.897-.787a7.7 7.7 0 0 1 1.482-.645a20 20 0 0 0 1.062-2.227a7.3 7.3 0 0 1-.43-1.295c-.086-.4-.119-.796-.046-1.136.075-.354.274-.672.65-.823.192-.077.4-.12.602-.077a.7.7 0 0 1 .477.365c.088.164.12.356.127.538.007.188-.012.396-.047.614-.084.51-.27 1.134-.52 1.794a11 11 0 0 0 .98 1.686a5.8 5.8 0 0 1 1.334.05c.364.066.734.195.96.465.12.144.193.32.2.518.007.192-.047.382-.138.563a1.04 1.04 0 0 1-.354.416a.86.86 0 0 1-.51.138c-.331-.014-.654-.196-.933-.417a5.7 5.7 0 0 1-.911-.95a11.7 11.7 0 0 0-1.997.406a11.3 11.3 0 0 1-1.02 1.51c-.292.35-.609.656-.927.787a.8.8 0 0 1-.58.029m1.379-1.901q-.25.115-.459.238c-.328.194-.541.383-.647.547-.094.145-.096.25-.04.361q.016.032.026.044l.035-.012c.137-.056.355-.235.635-.572a8 8 0 0 0 .45-.606m1.64-1.33a13 13 0 0 1 1.01-.193a12 12 0 0 1-.51-.858a21 21 0 0 1-.5 1.05zm2.446.45q.226.245.435.41c.24.19.407.253.498.256a.1.1 0 0 0 .07-.015a.3.3 0 0 0 .094-.125a.44.44 0 0 0 .059-.2a.1.1 0 0 0-.026-.063c-.052-.062-.2-.152-.518-.209a4 4 0 0 0-.612-.053zM8.078 7.8a7 7 0 0 0 .2-.828q.046-.282.038-.465a.6.6 0 0 0-.032-.198a.5.5 0 0 0-.145.04c-.087.035-.158.106-.196.283-.04.192-.03.469.046.822q.036.167.09.346z"/>
+        </svg>
+        <span>PDFを作成</span>
+      </button>
     </div>
 
     <div class="section">
       <div class="shead">■ 送る</div>
-      <button id="share" disabled>✉️ メール・チャットで送る</button>
+      <button id="share" disabled></button><!-- 中身(アイコン・文言)はapp.jsが対応状況を見て設定 -->
       <div class="hint" id="shareHint"></div>
     </div>
 
@@ -150,7 +168,7 @@
   <!-- ── 本文 ── -->
   <main class="main">
     <h1 class="main-title">プレビュー</h1>
-    <div id="status">左の「🖼 スクショを選ぶ」で画像を選ぶと、A4ページの割り付けがここに表示されます。</div>
+    <div id="status">左の「スクショを選ぶ」で画像を選ぶと、A4ページの割り付けがここに表示されます。</div>
     <div id="pages"></div>
   </main>
 
@@ -175,6 +193,19 @@ let building = false;
 // （API はあってもファイル種別によっては使えないことがあるため、その場合はダウンロードへ自動で切り替える）。
 const shareApiPresent = typeof navigator.share === "function" && typeof navigator.canShare === "function";
 
+// アイコン（Bootstrap Icons, MIT License, https://github.com/twbs/icons）を必要な分だけ生SVGで埋め込む。
+// Webフォント・CDNは使わない（読み込み待ちでのチラつきが起きず、外部通信も発生しない）。
+const ICON_SEND =
+  '<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">' +
+  '<path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471z"/></svg>';
+const ICON_DOWNLOAD =
+  '<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">' +
+  '<path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>' +
+  '<path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>';
+const ICON_X =
+  '<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">' +
+  '<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>';
+
 // ---- 要素 ----
 const $ = (id) => document.getElementById(id);
 const fileInput = $("file");
@@ -190,7 +221,11 @@ const setStatus = (m) => { statusEl.textContent = m || ""; };
 
 // スマホでの利用が前提のため、主経路はメール・チャットへの直接送信（Web Share）。
 // 非対応ブラウザ（主にPCのFirefoxなど）のときだけ「保存」に文言を切り替える。
-shareBtn.textContent = shareApiPresent ? "✉️ メール・チャットで送る" : "⬇ PDFを保存";
+// ※ shareBtn.textContent は後続コードでもラベル文言の取得に使う（SVGはテキストノードを持たないため、
+//    innerHTML に <svg>+<span> を入れても textContent は <span> の文字列だけを正しく返す）。
+shareBtn.innerHTML = shareApiPresent
+  ? `${ICON_SEND}<span>メール・チャットで送る</span>`
+  : `${ICON_DOWNLOAD}<span>PDFを保存</span>`;
 shareHintEl.textContent = shareApiPresent
   ? "タップすると送り先（メール・LINEなど）を選べます"
   : "このブラウザは直接の送信に対応していないため、PDFを保存します（保存後にメール等へ添付できます）";
@@ -230,7 +265,7 @@ function renderPreview() {
   pageInfoEl.textContent = n ? `${n}枚 → ${numPages}ページ` : "";
 
   if (n === 0) {
-    setStatus("左の「🖼 スクショを選ぶ」で画像を選ぶと、A4ページの割り付けがここに表示されます。");
+    setStatus("左の「スクショを選ぶ」で画像を選ぶと、A4ページの割り付けがここに表示されます。");
     return;
   }
   setStatus(`${n}枚のスクショを ${numPages}ページのA4に割り付けます（1ページ4枚）。内容を確認してから「PDFを作成」を押してください。`);
@@ -256,7 +291,8 @@ function renderPreview() {
         const rm = document.createElement("button");
         rm.className = "rm";
         rm.title = "この1枚を除外";
-        rm.textContent = "✕";
+        rm.setAttribute("aria-label", "この1枚を除外");
+        rm.innerHTML = ICON_X;
         rm.onclick = () => removeAt(i);
         cell.appendChild(img);
         cell.appendChild(idx);

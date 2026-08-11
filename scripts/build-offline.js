@@ -27,7 +27,8 @@ if (!html.includes(CDN_SCRIPT_TAG)) {
   throw new Error("index.html の CDN <script> タグが見つかりません。build-offline.js の CDN_SCRIPT_TAG を確認してください。");
 }
 // 表示文言が変わっても壊れないよう、リンク先(href)基準の正規表現で検出する
-const OFFLINE_LINK_RE = /\n[ \t]*<a class="link" href="screenshot-pdf-offline\.html" download>[^<]*<\/a>/;
+// （中身にアイコンSVGを含むため、タグを含む内容にもマッチするよう [\s\S]*? にしている）
+const OFFLINE_LINK_RE = /\n[ \t]*<a class="link" href="screenshot-pdf-offline\.html" download>[\s\S]*?<\/a>/;
 if (!OFFLINE_LINK_RE.test(html)) {
   throw new Error("index.html のオフライン版ダウンロードリンクが見つかりません。build-offline.js の OFFLINE_LINK_RE を確認してください。");
 }
