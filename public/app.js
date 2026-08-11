@@ -77,11 +77,14 @@ mobileQuery.addEventListener("change", placeSecondaryInfo);
 shareBtn.innerHTML = shareApiPresent
   ? `${ICON_SEND}<span>PDF共有</span>`
   : `${ICON_DOWNLOAD}<span>PDF保存</span>`;
+// 「メール・LINE・Xなどで共有できます」は常時表示の固定文言(HTML側)なので、ここでは
+// 共有できない場合の注記だけを出す。共有できる場合は固定文言だけで説明が足りるため空にする。
 shareHintEl.textContent = shareApiPresent
-  ? "タップすると送り先（メール・LINEなど）を選べます"
+  ? ""
   : secureContext
     ? "このブラウザは直接の送信に対応していないため、PDFを保存します（保存後にメール等へ添付できます）"
     : "HTTP接続では送信機能が無効になるため、PDFを保存します（HTTPSで開くと直接送信できます）";
+shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
 
 // ---- ファイル選択 ----
 fileInput.onchange = (e) => setFiles(Array.from(e.target.files || []));
