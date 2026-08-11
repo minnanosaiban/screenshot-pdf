@@ -77,7 +77,6 @@
   .badge { display: inline-block; font-size: 12px; padding: 3px 9px; border-radius: 999px;
            border: 1px solid #cfd2d8; background: #fff; color: #555; font-variant-numeric: tabular-nums; }
   .badge.ok { background: #e8f5e9; border-color: #c8e6c9; color: #256029; }
-  .note { font-size: 12px; color: #6b6f76; line-height: 1.55; }
   .link { font-size: 13px; color: #1f6feb; text-decoration: none; }
   .link:hover { text-decoration: underline; }
   .gh-link {
@@ -155,7 +154,6 @@
 
     <div class="section">
       <div class="shead">■ PDFを作成</div>
-      <div class="cap">A4・1ページに4枚（2×2、縦横比を保ったまま収めます）</div>
       <div id="pageInfo" class="cap"></div>
       <button id="build" class="primary" disabled>
         <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
@@ -171,8 +169,6 @@
       <button id="share" disabled></button><!-- 中身(アイコン・文言)はapp.jsが対応状況を見て設定 -->
       <div class="hint" id="shareHint"></div>
     </div>
-
-    <div class="note">これはオフライン版です。<b>ライブラリも含めて外部通信を一切行いません</b>（このHTMLファイル単体で完結）。※file://で直接開いた場合、共有機能（Web Share API）はブラウザ仕様上使えず、自動的にダウンロードになります。</div>
 
     <div id="secondary-info">
       <div class="section">
