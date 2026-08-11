@@ -49,11 +49,22 @@ const statusEl = $("status");
 const pagesEl = $("pages");
 
 const setStatus = (m) => { statusEl.textContent = m || ""; };
-// モバイル幅（サイドバーが本文の上に縦積みになるブレークポイント。CSSの@mediaと同じ768px）では、
+// モバイル幅（サイドバーが本文の上に縦積みになるブレークポイント。CSSの@mediaと同じ768px）の判定。
+const mobileQuery = window.matchMedia("(max-width: 768px)");
 // スクショ選択直後にプレビュー（本文）が画面外にあり「反応がない」ように見えるため、自動で本文へスクロールする。
 const scrollToMain = () => {
-  if (window.matchMedia("(max-width: 768px)").matches) statusEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (mobileQuery.matches) statusEl.scrollIntoView({ behavior: "smooth", block: "start" });
 };
+
+// 「このアプリについて」「免責事項」は、モバイル幅では情報より先に操作・結果を見せたいので
+// プレビュー（本文）の下へ実際に移動し、デスクトップ幅ではサイドバー内の元の位置に戻す。
+// 複製はしない（免責事項へのリンク先要素が常に1つだけになるようにするため）。
+const secondaryInfo = $("secondary-info");
+const sidebarEl = document.querySelector(".sidebar");
+const mainEl = document.querySelector("main.main");
+const placeSecondaryInfo = () => (mobileQuery.matches ? mainEl : sidebarEl).appendChild(secondaryInfo);
+placeSecondaryInfo();
+mobileQuery.addEventListener("change", placeSecondaryInfo);
 
 // スマホでの利用が前提のため、主経路はメール・チャットへの直接送信（Web Share）。
 // 非対応ブラウザ（主にPCのFirefoxなど）のときだけ「保存」に文言を切り替える。
