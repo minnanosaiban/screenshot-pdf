@@ -69,6 +69,9 @@
   .shead { font-weight: 700; font-size: 15px; margin: 0 0 2px; }
   .cap { font-size: 12.5px; color: #6b6f76; margin: 4px 0 -2px; }
   .hint { font-size: 12.5px; color: #8a8f98; }
+  .opt-row { display: flex; gap: 16px; }
+  .opt { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+  .opt input { accent-color: #ff4b4b; }
 
   .sidebar .filebtn, .sidebar button, .sidebar input[type="text"] {
     width: 100%; font-size: 14px; border-radius: 8px; border: 1px solid #d5d7dd;
@@ -172,6 +175,15 @@
     </div>
 
     <div class="section">
+      <div class="shead">■ 並び順</div>
+      <div class="opt-row" role="radiogroup" aria-label="1ページ内の並び順">
+        <label class="opt"><input type="radio" name="order" value="N" checked>N型</label>
+        <label class="opt"><input type="radio" name="order" value="Z">Z型</label>
+      </div>
+      <div class="hint">※1ページ4枚の並べ方です。N型：左上→左下→右上→右下（既定）／Z型：左上→右上→左下→右下</div>
+    </div>
+
+    <div class="section">
       <div class="shead">■ PDFを作成して共有</div>
       <div id="pageInfo" class="cap"></div>
       <div class="row">
@@ -231,6 +243,7 @@ let files = [];          // 選択順のまま保持する File 配列（並べ�
 let objectUrls = [];     // files と対になるプレビュー用 objectURL（差し替え時に revoke する）
 let outputBlob = null;
 let building = false;
+let order = "N";         // 1ページ内（4枚）の並び順。"N"＝左上→左下→右上→右下（既定）、"Z"＝左上→右上→左下→右下
 
 // Web Share（ファイル共有）に対応しているブラウザかどうかは、ページ読み込み時に一度だけ判定して
 // ボタンの見た目を固定する。実際に使えるかの最終判定は共有ボタン押下時に navigator.canShare() で行う
@@ -264,6 +277,7 @@ const shareBtn = $("share");
 const shareHintEl = $("shareHint");
 const statusEl = $("status");
 const pagesEl = $("pages");
+const orderRadios = document.querySelectorAll('input[name="order"]');
 
 const setStatus = (m) => { statusEl.textContent = m || ""; };
 // モバイル幅（サイドバーが本文の上に縦積みになるブレークポイント。CSSの@mediaと同じ768px）の判定。
@@ -303,6 +317,26 @@ shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
 
 // ---- ファイル選択 ----
 fileInput.onchange = (e) => setFiles(Array.from(e.target.files || []));
+
+// ---- 並び順（N型／Z型） ----
+orderRadios.forEach((r) => {
+  r.onchange = () => {
+    if (building || !r.checked) return;   // 同上：作成中の変更は無視
+    order = r.value;
+    outputBlob = null;
+    shareBtn.disabled = true;
+    renderPreview();
+  };
+});
+
+// 1ページ内（4枚）でのグリッド位置(col:0=左/1=右, row:0=上/1=下)を、選択中の並び順から求める。
+// Z型：左上→右上→左下→右下（横方向優先、通常の読み順）
+// N型：左上→左下→右上→右下（縦方向優先。既定）
+function cellPos(c) {
+  return order === "Z"
+    ? { col: c % 2, row: Math.floor(c / 2) }
+    : { col: Math.floor(c / 2), row: c % 2 };
+}
 
 function setFiles(list) {
   if (building) return;   // 同上：作成中の再選択は無視（inputはbuild中disabledにしているので通常は来ない）
@@ -367,6 +401,9 @@ function renderPreview() {
       const i = p * 4 + c;
       const cell = document.createElement("div");
       cell.className = "cell";
+      const { col, row } = cellPos(c);
+      cell.style.gridColumn = String(col + 1);
+      cell.style.gridRow = String(row + 1);
       if (i < n) {
         const img = document.createElement("img");
         img.src = objectUrls[i];
@@ -414,6 +451,7 @@ buildBtn.onclick = async () => {
   buildBtn.disabled = true;
   shareBtn.disabled = true;
   fileInput.disabled = true;
+  orderRadios.forEach((r) => (r.disabled = true));
   pagesEl.classList.add("building");
   const n = files.length;
   const numPages = Math.ceil(n / 4);
@@ -426,7 +464,7 @@ buildBtn.onclick = async () => {
         const i = p * 4 + c;
         if (i >= n) break;
         const img = await embedImage(out, files[i]);
-        const col = c % 2, row = Math.floor(c / 2);
+        const { col, row } = cellPos(c);
         const cellX = MARGIN + col * (CELL_W + GUTTER);
         const cellYBottom = A4_H - MARGIN - CELL_H - row * (CELL_H + GUTTER);
         const rect = containRect(img.width, img.height, cellX, cellYBottom, CELL_W, CELL_H);
@@ -448,6 +486,7 @@ buildBtn.onclick = async () => {
     building = false;
     buildBtn.disabled = files.length === 0;
     fileInput.disabled = false;
+    orderRadios.forEach((r) => (r.disabled = false));
     pagesEl.classList.remove("building");
   }
 };
