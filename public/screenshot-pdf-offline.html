@@ -231,7 +231,7 @@
   <script>
 "use strict";
 
-const { PDFDocument } = PDFLib;
+const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
 const A4_W = 595.28, A4_H = 841.89;   // pt（1pt = 1/72inch）
 const MARGIN = 24, GUTTER = 16;       // pt
@@ -458,6 +458,7 @@ buildBtn.onclick = async () => {
   setStatus(`PDFを作成中…（${n}枚 / ${numPages}ページ）`);
   try {
     const out = await PDFDocument.create();
+    const badgeFont = await out.embedFont(StandardFonts.HelveticaBold);
     for (let p = 0; p < numPages; p++) {
       const page = out.addPage([A4_W, A4_H]);
       for (let c = 0; c < 4; c++) {
@@ -469,6 +470,7 @@ buildBtn.onclick = async () => {
         const cellYBottom = A4_H - MARGIN - CELL_H - row * (CELL_H + GUTTER);
         const rect = containRect(img.width, img.height, cellX, cellYBottom, CELL_W, CELL_H);
         page.drawImage(img, rect);
+        drawIndexBadge(page, badgeFont, i + 1, cellX, cellYBottom + CELL_H);
       }
       setStatus(`PDFを作成中… ${p + 1}/${numPages}ページ`);
     }
@@ -522,6 +524,29 @@ function containRect(imgW, imgH, cellX, cellYBottom, cellW, cellH) {
   const scale = Math.min(cellW / imgW, cellH / imgH);
   const w = imgW * scale, h = imgH * scale;
   return { x: cellX + (cellW - w) / 2, y: cellYBottom + (cellH - h) / 2, width: w, height: h };
+}
+
+// 並び順の番号（プレビューの丸バッジ .idx と同じ役割）をPDF上にも描く。
+// 画像の収まり方（余白）に関わらず位置が揃うよう、画像矩形ではなくセル自体の左上を基準にする。
+const BADGE_R = 9, BADGE_PAD = 5;
+function drawIndexBadge(page, font, n, cellLeft, cellTop) {
+  const cx = cellLeft + BADGE_PAD + BADGE_R;
+  const cy = cellTop - BADGE_PAD - BADGE_R;
+  page.drawCircle({
+    x: cx, y: cy, size: BADGE_R,
+    color: rgb(1, 1, 1), opacity: 0.9,
+    borderColor: rgb(0.75, 0.75, 0.75), borderWidth: 0.75,
+  });
+  const label = String(n);
+  const fontSize = 9;
+  const textW = font.widthOfTextAtSize(label, fontSize);
+  page.drawText(label, {
+    x: cx - textW / 2,
+    y: cy - fontSize * 0.36,
+    size: fontSize,
+    font,
+    color: rgb(0.33, 0.33, 0.33),
+  });
 }
 
 // ---- 共有 / ダウンロード ----
