@@ -34,9 +34,34 @@
     font-family: "Source Sans Pro", system-ui, "Segoe UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
   }
 
+  /* ── アプリ内ブラウザ（X/Twitter等）案内バナー ── */
+  /* X・Instagram等のアプリ内ブラウザでは共有/保存が動かないことがあるため、UAで検出できた
+     場合だけ表示する（該当しなければ非表示のまま何もしない）。固定サイドバーとの重なりを
+     避けるため、実際の高さを --banner-h に反映して .sidebar の top をずらす。 */
+  .inapp-banner {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+    padding: 10px 16px; background: #fff3cd; border-bottom: 1px solid #ffe69c;
+    font-size: 13px; color: #4a3b00; position: relative; z-index: 200;
+  }
+  .inapp-banner .warn {
+    display: flex; align-items: center; justify-content: center; flex: none;
+    width: 18px; height: 18px; border-radius: 50%; background: #4a3b00; color: #fff3cd;
+    font-size: 12px; font-weight: 700;
+  }
+  .inapp-banner .msg { flex: 1 1 240px; min-width: 0; line-height: 1.5; }
+  .inapp-banner button {
+    font-size: 13px; border-radius: 8px; border: 1px solid #d5ad2c; background: #fff;
+    color: #4a3b00; padding: 6px 12px; cursor: pointer; font-weight: 600; white-space: nowrap;
+  }
+  .inapp-banner button:hover { background: #ffe69c; }
+  .inapp-banner button.close {
+    border: none; background: transparent; font-weight: 400; padding: 6px 8px; font-size: 15px;
+  }
+  .inapp-banner .note { flex-basis: 100%; font-size: 12px; color: #6b5900; }
+
   /* ── サイドバー（Streamlit風） ── */
   .sidebar {
-    position: fixed; top: 0; left: 0; bottom: 0; width: 300px; overflow-y: auto;
+    position: fixed; top: var(--banner-h, 0px); left: 0; bottom: 0; width: 300px; overflow-y: auto;
     background: #f0f2f6; padding: 28px 20px 48px;
     display: flex; flex-direction: column; gap: 28px;
   }
@@ -133,13 +158,23 @@
   .cell .move:disabled { opacity: .35; cursor: not-allowed; background: rgba(255,255,255,.6); box-shadow: none; }
 
   @media (max-width: 768px) {
-    .sidebar { position: static; width: 100%; bottom: auto; }
+    .sidebar { position: static; width: 100%; top: auto; bottom: auto; }
     .main { margin-left: 0; padding: 16px 14px 60px; }
     .a4 { width: 100%; max-width: 340px; }
   }
 </style>
 </head>
 <body>
+  <!-- ── アプリ内ブラウザ案内バナー（該当時のみapp.jsが表示） ── -->
+  <div id="inappBanner" class="inapp-banner" hidden>
+    <span class="warn" aria-hidden="true">!</span>
+    <div class="msg" id="inappMsg"></div>
+    <button id="inappOpen" type="button">外部ブラウザで開く</button>
+    <button id="inappCopy" type="button">リンクをコピー</button>
+    <button id="inappClose" type="button" class="close" aria-label="閉じる">×</button>
+    <div class="note" id="inappNote" hidden></div>
+  </div>
+
   <!-- ── サイドバー ── -->
   <aside class="sidebar">
     <div class="brand">

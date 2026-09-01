@@ -84,6 +84,78 @@ shareHintEl.textContent = shareApiPresent
   : "※このブラウザでは直接の送信に対応していないため、PDFを保存します（保存後にメール等へ添付できます）";
 shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
 
+// ---- アプリ内ブラウザ（X/Twitter等）案内バナー ----
+// X・Instagram等のアプリ内ブラウザは、ファイル共有（Web Share）やダウンロード（Blob保存）を
+// ブロックし、ホストアプリ側の「ブラウザで開く」を要求することがある。この制限自体はページ側の
+// JSからは解除できないため、UAで検出できた場合だけ、外部の通常ブラウザで開き直すための案内を
+// アプリ自身の目立つバナーで出す（ホストアプリ側の分かりにくいメニューを探さずに済むように）。
+// file://（オフライン版）や該当しない通常ブラウザでは何もしない。
+(function setupInAppBanner() {
+  if (!/^https?:/.test(location.protocol)) return;
+  const ua = navigator.userAgent || "";
+  const appName = /Twitter for (iPhone|iPad|Android)|\bTwitter\b/i.test(ua) ? "X（Twitter）"
+    : /Instagram/i.test(ua) ? "Instagram"
+    : /FBAN|FBAV/i.test(ua) ? "Facebook"
+    : /\bLine\//i.test(ua) ? "LINE"
+    : null;
+  if (!appName) return;
+
+  const banner = $("inappBanner");
+  if (!banner) return;
+  const msgEl = $("inappMsg");
+  const noteEl = $("inappNote");
+  const openBtn = $("inappOpen");
+  const copyBtn = $("inappCopy");
+  const closeBtn = $("inappClose");
+
+  const updateBannerHeight = () => {
+    document.documentElement.style.setProperty("--banner-h", banner.hidden ? "0px" : `${banner.offsetHeight}px`);
+  };
+  const setNote = (text) => {
+    noteEl.textContent = text;
+    noteEl.hidden = !text;
+    updateBannerHeight();
+  };
+
+  msgEl.textContent = `${appName}内のブラウザで開いています。PDFの送信・保存がうまく動かないことがあるため、外部ブラウザで開くことをおすすめします。`;
+  banner.hidden = false;
+  updateBannerHeight();
+  window.addEventListener("resize", updateBannerHeight);
+
+  const isIOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/i.test(ua);
+
+  openBtn.onclick = () => {
+    const url = location.href;
+    if (isAndroid) {
+      // Androidは intent: スキームでOSに解決を委ねると、既定のブラウザ（無ければ選択肢）が
+      // 直接開ける。アプリ内ブラウザ側がこの仕組みを塞いでいなければ効く。
+      const bare = url.replace(/^https?:\/\//, "");
+      location.href = `intent://${bare}#Intent;scheme=https;action=android.intent.action.VIEW;` +
+        `category=android.intent.category.BROWSABLE;S.browser_fallback_url=${encodeURIComponent(url)};end`;
+    } else if (isIOS) {
+      // iOSは確実に成功する方法がない（x-safari-https:// は効くこともあるが保証はない）ため、
+      // 試したうえで必ず手動の代替手段も案内する。
+      location.href = url.replace(/^https?:\/\//, (m) => "x-safari-" + m);
+    }
+    setNote("切り替わらない場合は「リンクをコピー」して、Safari・Chrome等のブラウザアプリに貼り付けて開いてください。");
+  };
+
+  copyBtn.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(location.href);
+      setNote("リンクをコピーしました。ブラウザアプリのアドレス欄に貼り付けて開いてください。");
+    } catch (err) {
+      setNote("コピーできませんでした。アドレス欄のURLを長押しして手動でコピーしてください。");
+    }
+  };
+
+  closeBtn.onclick = () => {
+    banner.hidden = true;
+    updateBannerHeight();
+  };
+})();
+
 // ---- ファイル選択 ----
 fileInput.onchange = (e) => setFiles(Array.from(e.target.files || []));
 
