@@ -338,15 +338,13 @@ shareHintEl.textContent = shareApiPresent
 shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
 
 // ---- アプリ内ブラウザ（X/Twitter等）向けの案内 ----
-// X等のSNSアプリ内蔵ブラウザは、ファイル共有・ダウンロードをホストアプリ側でブロックしている
-// ことがあり、これはページ側のJSからは解除できない（実機で「外部ブラウザへ自動で切り替える」
+// X等のSNSアプリ内蔵ブラウザは、ファイル選択・共有・ダウンロードをホストアプリ側でブロックして
+// いることがあり、これはページ側のJSからは解除できない（実機で「外部ブラウザへ自動で切り替える」
 // 系の手段を試したが反応しなかったため、無理に自動化はせず案内文に留める）。
-// 該当ブラウザをUAで検出できたときだけ、静的な案内＋確実に動く「リンクをコピー」を表示する。
+// UAでの機種判定は実機で2回とも外れた（該当環境のUAが想定パターンに一致しなかった）ため、
+// 判定はやめて常時表示にする（file://のオフライン版でだけ、無関係な案内なので出さない）。
 (function setupInAppHint() {
   if (!/^https?:/.test(location.protocol)) return;   // file://（オフライン版）では出さない
-  const ua = navigator.userAgent || "";
-  const isInApp = /Twitter for (iPhone|iPad|Android)|\bTwitter\b|Instagram|FBAN|FBAV|\bLine\//i.test(ua);
-  if (!isInApp) return;
 
   const hintEl = $("inappHint");
   const copyBtn = $("inappCopy");
