@@ -84,6 +84,34 @@ shareHintEl.textContent = shareApiPresent
   : "※このブラウザでは直接の送信に対応していないため、PDFを保存します（保存後にメール等へ添付できます）";
 shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
 
+// ---- アプリ内ブラウザ（X/Twitter等）向けの案内 ----
+// X等のSNSアプリ内蔵ブラウザは、ファイル共有・ダウンロードをホストアプリ側でブロックしている
+// ことがあり、これはページ側のJSからは解除できない（実機で「外部ブラウザへ自動で切り替える」
+// 系の手段を試したが反応しなかったため、無理に自動化はせず案内文に留める）。
+// 該当ブラウザをUAで検出できたときだけ、静的な案内＋確実に動く「リンクをコピー」を表示する。
+(function setupInAppHint() {
+  if (!/^https?:/.test(location.protocol)) return;   // file://（オフライン版）では出さない
+  const ua = navigator.userAgent || "";
+  const isInApp = /Twitter for (iPhone|iPad|Android)|\bTwitter\b|Instagram|FBAN|FBAV|\bLine\//i.test(ua);
+  if (!isInApp) return;
+
+  const hintEl = $("inappHint");
+  const copyBtn = $("inappCopy");
+  if (!hintEl || !copyBtn) return;
+  hintEl.hidden = false;
+
+  copyBtn.onclick = async () => {
+    const original = copyBtn.textContent;
+    try {
+      await navigator.clipboard.writeText(location.href);
+      copyBtn.textContent = "コピーしました";
+    } catch (err) {
+      copyBtn.textContent = "コピーできませんでした";
+    }
+    setTimeout(() => { copyBtn.textContent = original; }, 2500);
+  };
+})();
+
 // ---- ファイル選択 ----
 fileInput.onchange = (e) => setFiles(Array.from(e.target.files || []));
 

@@ -100,6 +100,15 @@
   .badge.ok { background: #e8f5e9; border-color: #c8e6c9; color: #256029; }
   .link { font-size: 13px; color: #1f6feb; text-decoration: none; }
   .link:hover { text-decoration: underline; }
+  /* .sidebar button { width:100% } を上書きし、文中に埋め込めるインラインのリンク風ボタンにする */
+  button.link { width: auto; display: inline; background: none; border: none; padding: 0; font: inherit; cursor: pointer; }
+  /* アプリ内ブラウザ向けの注意書き。「スクショを選ぶ」自体が反応しないケースがあるため、
+     見落とされないよう.hintより一段強い見た目（枠＋淡い背景）にする。 */
+  #inappHint {
+    font-size: 12.5px; line-height: 1.6; color: #4a3b00;
+    background: #fff8e6; border: 1px solid #ffe69c; border-radius: 8px; padding: 10px 12px;
+  }
+  #inappHint .link { color: #8a5a00; font-weight: 600; }
   .gh-link {
     display: inline-flex; align-items: center; justify-content: center;
     width: 28px; height: 28px; margin: -2px 0; border-radius: 6px; color: #31333f;
@@ -164,6 +173,13 @@
       <div class="app-title">スクショ PDF化</div>
       <div class="app-tagline">■ スマホのスクショを2×2で配置したPDFに変換するアプリです</div>
       <div class="app-sub">※外部への送信はなくローカルで完結するアプリです。ご利用前に<a href="#disclaimer">免責事項</a>をご覧ください。</div>
+    </div>
+
+    <!-- X等のアプリ内ブラウザでは、スクショの選択（写真picker呼び出し）や送信・保存が
+         ブロックされることがある。ページ側からは解除できない制限のため、該当ブラウザを
+         検出したときだけ、最初の操作より前に静的な案内を出す（app.jsが表示切替）。 -->
+    <div class="hint" id="inappHint" hidden>
+      ※アプリ内のブラウザで開いている場合、スクショの選択や送信・保存がうまく動かないことがあります。その場合はアドレス欄そばの「…」メニューから「ブラウザで開く」を選んで開き直してください（<button type="button" class="link" id="inappCopy">リンクをコピー</button>してブラウザに貼り付けてもOKです）。
     </div>
 
     <div class="section">
@@ -320,6 +336,34 @@ shareHintEl.textContent = shareApiPresent
   ? ""
   : "※このブラウザでは直接の送信に対応していないため、PDFを保存します（保存後にメール等へ添付できます）";
 shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
+
+// ---- アプリ内ブラウザ（X/Twitter等）向けの案内 ----
+// X等のSNSアプリ内蔵ブラウザは、ファイル共有・ダウンロードをホストアプリ側でブロックしている
+// ことがあり、これはページ側のJSからは解除できない（実機で「外部ブラウザへ自動で切り替える」
+// 系の手段を試したが反応しなかったため、無理に自動化はせず案内文に留める）。
+// 該当ブラウザをUAで検出できたときだけ、静的な案内＋確実に動く「リンクをコピー」を表示する。
+(function setupInAppHint() {
+  if (!/^https?:/.test(location.protocol)) return;   // file://（オフライン版）では出さない
+  const ua = navigator.userAgent || "";
+  const isInApp = /Twitter for (iPhone|iPad|Android)|\bTwitter\b|Instagram|FBAN|FBAV|\bLine\//i.test(ua);
+  if (!isInApp) return;
+
+  const hintEl = $("inappHint");
+  const copyBtn = $("inappCopy");
+  if (!hintEl || !copyBtn) return;
+  hintEl.hidden = false;
+
+  copyBtn.onclick = async () => {
+    const original = copyBtn.textContent;
+    try {
+      await navigator.clipboard.writeText(location.href);
+      copyBtn.textContent = "コピーしました";
+    } catch (err) {
+      copyBtn.textContent = "コピーできませんでした";
+    }
+    setTimeout(() => { copyBtn.textContent = original; }, 2500);
+  };
+})();
 
 // ---- ファイル選択 ----
 fileInput.onchange = (e) => setFiles(Array.from(e.target.files || []));
