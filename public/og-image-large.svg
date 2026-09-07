@@ -2,7 +2,7 @@
   <rect width="1200" height="630" fill="#000000"/>
   <text x="600" y="280" text-anchor="middle" dominant-baseline="central"
         font-family="'Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif"
-        font-weight="400" font-size="110" fill="#ffffff">スクショ PDF化アプリ</text>
+        font-weight="400" font-size="110" fill="#ffffff">スクショ PDF化ツール</text>
   <text x="600" y="380" text-anchor="middle" dominant-baseline="central"
         font-family="'Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif"
         font-weight="400" font-size="37" fill="#cfcfcf">スマホのスクショをA4のPDFにまとめて共有できます</text>
