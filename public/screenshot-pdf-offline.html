@@ -105,6 +105,8 @@
   .link:hover { text-decoration: underline; }
   /* .sidebar button { width:100% } を上書きし、文中に埋め込めるインラインのリンク風ボタンにする */
   button.link { width: auto; display: inline; background: none; border: none; padding: 0; font: inherit; cursor: pointer; }
+  /* 上のdisplay:inlineがUA既定のhidden([hidden]{display:none})を上書きしてしまうため、明示的に戻す */
+  button.link[hidden] { display: none; }
   /* アプリ内ブラウザ向けの注意書き。「スクショを選ぶ」自体が反応しないケースがあるため、
      見落とされないよう.hintより一段強い見た目（枠＋淡い背景）にする。 */
   #inappHint {
@@ -195,8 +197,8 @@
         <span>スクショを選ぶ</span>
         <input id="file" type="file" accept="image/*" multiple>
       </label>
-      <div><span id="count" class="badge">未選択</span></div>
-      <div class="hint">※並び順は選択ダイアログで返ってきた順です。各コマの◀▶で順番を入れ替えられます</div>
+      <div><span id="count" class="badge">未選択</span> <button type="button" class="link" id="clearFiles" hidden>全部やり直す</button></div>
+      <div class="hint">※選ぶたびに追加されます（続けて選び足せます）。並び順は選択順、各コマの◀▶で入れ替え、まとめてやり直すには「全部やり直す」をどうぞ</div>
     </div>
 
     <div class="section">
@@ -210,6 +212,8 @@
 
     <div class="section">
       <div class="shead">■ PDFを作成して共有</div>
+      <label class="opt"><input type="checkbox" id="compress">軽量化する</label>
+      <div class="hint">※大きい画像（高解像度の写真など）だけを自動で圧縮します。スクショなど元から軽い画像はそのまま（無劣化）埋め込まれます。枚数が多くメール・LINE等で送れない時にお試しください</div>
       <div id="pageInfo" class="cap"></div>
       <div class="row">
         <button id="build" class="primary" disabled>
@@ -295,6 +299,7 @@ const ICON_X =
 // ---- 要素 ----
 const $ = (id) => document.getElementById(id);
 const fileInput = $("file");
+const clearBtn = $("clearFiles");
 const countEl = $("count");
 const pageInfoEl = $("pageInfo");
 const buildBtn = $("build");
@@ -303,6 +308,7 @@ const shareHintEl = $("shareHint");
 const statusEl = $("status");
 const pagesEl = $("pages");
 const orderRadios = document.querySelectorAll('input[name="order"]');
+const compressChk = $("compress");
 
 const setStatus = (m) => { statusEl.textContent = m || ""; };
 // モバイル幅（サイドバーが本文の上に縦積みになるブレークポイント。CSSの@mediaと同じ768px）の判定。
@@ -367,7 +373,14 @@ shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
 })();
 
 // ---- ファイル選択 ----
-fileInput.onchange = (e) => setFiles(Array.from(e.target.files || []));
+// 選ぶたびに追加する（スマホの写真ピッカーは前回の選択状態を覚えていないため、
+// 「後からもう1枚足したい」ときに毎回全部選び直さずに済むようにする）。
+// まとめてやり直したいときは「全部やり直す」ボタン（clearAllFiles）を使う。
+fileInput.onchange = (e) => {
+  addFiles(Array.from(e.target.files || []));
+  fileInput.value = "";   // 同じファイルを続けて選んだ場合でも change が発火するようにリセット
+};
+clearBtn.onclick = () => clearAllFiles();
 
 // ---- 並び順（N型／Z型） ----
 orderRadios.forEach((r) => {
@@ -380,6 +393,14 @@ orderRadios.forEach((r) => {
   };
 });
 
+// ---- 軽量化（出力時に画像を圧縮するかどうか） ----
+// プレビューの見た目には影響しない（PDF作成時の埋め込み方法だけが変わる）ため renderPreview は呼ばない。
+compressChk.onchange = () => {
+  if (building) return;   // 同上：作成中の変更は無視
+  outputBlob = null;
+  shareBtn.disabled = true;
+};
+
 // 1ページ内（4枚）でのグリッド位置(col:0=左/1=右, row:0=上/1=下)を、選択中の並び順から求める。
 // Z型：左上→右上→左下→右下（横方向優先、通常の読み順）
 // N型：左上→左下→右上→右下（縦方向優先。既定）
@@ -389,15 +410,27 @@ function cellPos(c) {
     : { col: Math.floor(c / 2), row: c % 2 };
 }
 
-function setFiles(list) {
+// 選択された画像を既存の並びの末尾に追加する（総入れ替えはしない。全消去は clearAllFiles で行う）。
+function addFiles(list) {
   if (building) return;   // 同上：作成中の再選択は無視（inputはbuild中disabledにしているので通常は来ない）
-  for (const url of objectUrls) URL.revokeObjectURL(url);
-  files = list.filter((f) => f.type.startsWith("image/"));
-  objectUrls = files.map((f) => URL.createObjectURL(f));
+  const imgs = list.filter((f) => f.type.startsWith("image/"));
+  if (imgs.length === 0) return;   // 画像以外だけを選んだ／ダイアログをキャンセルした場合は何もしない
+  files = files.concat(imgs);
+  objectUrls = objectUrls.concat(imgs.map((f) => URL.createObjectURL(f)));
   outputBlob = null;
   shareBtn.disabled = true;
   renderPreview();
-  if (files.length > 0) scrollToMain();
+  scrollToMain();
+}
+
+function clearAllFiles() {
+  if (building) return;
+  for (const url of objectUrls) URL.revokeObjectURL(url);
+  files = [];
+  objectUrls = [];
+  outputBlob = null;
+  shareBtn.disabled = true;
+  renderPreview();
 }
 
 function removeAt(i) {
@@ -431,6 +464,7 @@ function renderPreview() {
 
   countEl.textContent = n ? `${n}枚選択中` : "未選択";
   countEl.className = "badge" + (n ? " ok" : "");
+  clearBtn.hidden = n === 0;
   const numPages = Math.ceil(n / 4);
   pageInfoEl.textContent = n ? `※${n}枚 → ${numPages}ページ` : "";
 
@@ -502,11 +536,15 @@ buildBtn.onclick = async () => {
   buildBtn.disabled = true;
   shareBtn.disabled = true;
   fileInput.disabled = true;
+  clearBtn.disabled = true;
+  compressChk.disabled = true;
   orderRadios.forEach((r) => (r.disabled = true));
   pagesEl.classList.add("building");
   const n = files.length;
   const numPages = Math.ceil(n / 4);
+  const compress = compressChk.checked;
   setStatus(`PDFを作成中…（${n}枚 / ${numPages}ページ）`);
+  let compressedCount = 0;
   try {
     const out = await PDFDocument.create();
     const badgeFont = await out.embedFont(StandardFonts.HelveticaBold);
@@ -515,7 +553,8 @@ buildBtn.onclick = async () => {
       for (let c = 0; c < 4; c++) {
         const i = p * 4 + c;
         if (i >= n) break;
-        const img = await embedImage(out, files[i]);
+        const { img, compressed } = await embedImage(out, files[i], compress);
+        if (compressed) compressedCount++;
         const { col, row } = cellPos(c);
         const cellX = MARGIN + col * (CELL_W + GUTTER);
         const cellYBottom = A4_H - MARGIN - CELL_H - row * (CELL_H + GUTTER);
@@ -531,7 +570,8 @@ buildBtn.onclick = async () => {
     const bytes = await out.save();
     outputBlob = new Blob([bytes], { type: "application/pdf" });
     shareBtn.disabled = false;
-    setStatus(`完了：${n}枚を${numPages}ページのA4 PDFにまとめました。左の「${shareBtn.textContent}」をタップしてください。`);
+    const compressNote = compress ? (compressedCount > 0 ? `（${compressedCount}枚を軽量化）` : "（対象なし・元のまま）") : "";
+    setStatus(`完了：${n}枚を${numPages}ページのA4 PDFにまとめました${compressNote}。左の「${shareBtn.textContent}」をタップしてください。`);
   } catch (err) {
     console.error(err);
     setStatus("PDFの作成に失敗しました。画像の形式を確認するか、枚数を減らしてもう一度お試しください。");
@@ -539,24 +579,44 @@ buildBtn.onclick = async () => {
     building = false;
     buildBtn.disabled = files.length === 0;
     fileInput.disabled = false;
+    clearBtn.disabled = false;
+    compressChk.disabled = false;
     orderRadios.forEach((r) => (r.disabled = false));
     pagesEl.classList.remove("building");
   }
 };
 
-// File を pdf-lib に埋め込む。PNG/JPEGはそのまま（無劣化）、それ以外の形式（WebP等）や
-// MIME判定に失敗したファイルは canvas 経由で一度 PNG に変換してから埋め込む。
-async function embedImage(doc, file) {
+// File を pdf-lib に埋め込む。
+// compress=false（既定）: PNG/JPEGはそのまま（無劣化）埋め込む。それ以外の形式（WebP等）や
+//   MIME判定に失敗したファイルは canvas 経由で一度 PNG に変換してから埋め込む。
+// compress=true: 「軽量化する」チェック時。1/4ページのセルに収まる程度まで解像度を落とし、
+//   JPEGへ再圧縮した候補を作るが、実際に埋め込むのは「元ファイルより小さくなった場合だけ」。
+//   スクショ（フラットな色・文字が中心）はPNGの無劣化圧縮が既に効率的で、canvasでの
+//   縮小・JPEG化がかえって元ファイルより大きくなることが実測で確認できたため
+//   （アンチエイリアスで境界がぼやけ、色数が増えて圧縮効率が落ちるのが原因）、
+//   「軽量化」を謳う以上は必ずサイズを比較し、悪化する画像は無劣化のまま埋め込む。
+//   写真など高解像度・高色数の画像を混ぜた場合はこちらが効いて大きく軽くなる。
+async function embedImage(doc, file, compress) {
   const type = (file.type || "").toLowerCase();
   const buf = new Uint8Array(await file.arrayBuffer());
-  try {
-    if (type === "image/png") return await doc.embedPng(buf);
-    if (type === "image/jpeg" || type === "image/jpg") return await doc.embedJpg(buf);
-  } catch (err) {
-    // 拡張子とヘッダが食い違っている等、そのまま埋め込めなかった場合は下のcanvas変換にフォールバック
+  const embedOriginal = async () => {
+    try {
+      if (type === "image/png") return await doc.embedPng(buf);
+      if (type === "image/jpeg" || type === "image/jpg") return await doc.embedJpg(buf);
+    } catch (err) {
+      // 拡張子とヘッダが食い違っている等、そのまま埋め込めなかった場合は下のcanvas変換にフォールバック
+    }
+    return await doc.embedPng(await toPngBytes(file));
+  };
+  if (compress) {
+    try {
+      const jpegBytes = await toCompressedJpegBytes(file);
+      if (jpegBytes.length < buf.length) return { img: await doc.embedJpg(jpegBytes), compressed: true };
+    } catch (err) {
+      // 圧縮候補の生成に失敗した場合は無劣化埋め込みにフォールバック
+    }
   }
-  const pngBytes = await toPngBytes(file);
-  return await doc.embedPng(pngBytes);
+  return { img: await embedOriginal(), compressed: false };
 }
 
 async function toPngBytes(file) {
@@ -567,6 +627,27 @@ async function toPngBytes(file) {
   c.getContext("2d").drawImage(bitmap, 0, 0);
   bitmap.close();
   const blob = await new Promise((res) => c.toBlob(res, "image/png"));
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
+// 軽量化用の長辺上限(px)とJPEG品質。1コマは A4を2×2分割したセル（約3.7×5.4cm）にしか
+// 表示されないため、長辺1600pxもあれば印刷でも粗さは出ない一方、スクショ由来の高解像度PNGより
+// かなり軽くなる。
+const COMPRESS_MAX_EDGE = 1600;
+const COMPRESS_QUALITY = 0.82;
+
+async function toCompressedJpegBytes(file) {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, COMPRESS_MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+  const w = Math.max(1, Math.round(bitmap.width * scale));
+  const h = Math.max(1, Math.round(bitmap.height * scale));
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const cx = c.getContext("2d");
+  cx.fillStyle = "#fff"; cx.fillRect(0, 0, w, h);   // JPEGは透過非対応のため、下地を白で塗ってから描画する
+  cx.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close();
+  const blob = await new Promise((res) => c.toBlob(res, "image/jpeg", COMPRESS_QUALITY));
   return new Uint8Array(await blob.arrayBuffer());
 }
 
