@@ -89,17 +89,26 @@ shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
 // ---- アプリ内ブラウザ（X/Twitter等）向けの案内 ----
 // X等のSNSアプリ内蔵ブラウザは、ファイル選択・共有・ダウンロードをホストアプリ側でブロックして
 // いることがあり、これはページ側のJSからは解除できない（実機で「外部ブラウザへ自動で切り替える」
-// 系の手段を試したが反応しなかったため、無理に自動化はせず案内文に留める）。
+// 系の手段を試したが反応しなかったため、無理に自動化はせず案内に留める）。
 // UAでの機種判定は実機で2回とも外れた（該当環境のUAが想定パターンに一致しなかった）ため、
-// 判定はやめて常時表示にする（file://のオフライン版でだけ、無関係な案内なので出さない）。
-(function setupInAppHint() {
+// 判定はやめて開くたびに毎回ダイアログで案内する（常時表示の注意書きは廃止。
+// file://のオフライン版でだけ、無関係な案内なので出さない）。
+(function setupInAppDialog() {
   if (!/^https?:/.test(location.protocol)) return;   // file://（オフライン版）では出さない
 
-  const hintEl = $("inappHint");
+  const dialog = $("inappDialog");
   const copyBtn = $("inappCopy");
-  if (!hintEl || !copyBtn) return;
-  hintEl.hidden = false;
+  const closeBtn = $("inappClose");
+  if (!dialog || !copyBtn || !closeBtn) return;
 
+  closeBtn.onclick = () => dialog.close();
+  // 背景（枠外）タップでも閉じる。backdrop疑似要素はDOM上のヒットテスト対象にならないブラウザが
+  // あり e.target === dialog は当てにならないため、実際のクリック座標がdialogの矩形内かで判定する。
+  dialog.addEventListener("click", (e) => {
+    const r = dialog.getBoundingClientRect();
+    const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    if (!inside) dialog.close();
+  });
   copyBtn.onclick = async () => {
     const original = copyBtn.textContent;
     try {
@@ -110,6 +119,7 @@ shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
     }
     setTimeout(() => { copyBtn.textContent = original; }, 2500);
   };
+  dialog.showModal();
 })();
 
 // ---- ファイル選択 ----

@@ -107,13 +107,21 @@
   button.link { width: auto; display: inline; background: none; border: none; padding: 0; font: inherit; cursor: pointer; }
   /* 上のdisplay:inlineがUA既定のhidden([hidden]{display:none})を上書きしてしまうため、明示的に戻す */
   button.link[hidden] { display: none; }
-  /* アプリ内ブラウザ向けの注意書き。「スクショを選ぶ」自体が反応しないケースがあるため、
-     見落とされないよう.hintより一段強い見た目（枠＋淡い背景）にする。 */
-  #inappHint {
-    font-size: 12.5px; line-height: 1.6; color: #4a3b00;
-    background: #fff8e6; border: 1px solid #ffe69c; border-radius: 8px; padding: 10px 12px;
+  /* アプリ内ブラウザ向けの案内ダイアログ。「スクショを選ぶ」自体が反応しないケースがあるため、
+     開いた直後に一度だけ表示して見落とされないようにする（常時表示の注意書きは廃止）。 */
+  dialog#inappDialog {
+    max-width: 340px; width: calc(100% - 48px); margin: auto; border: none; border-radius: 12px;
+    padding: 20px 22px; box-shadow: 0 8px 32px rgba(0,0,0,.2); color: #31333f; font-family: inherit;
   }
-  #inappHint .link { color: #8a5a00; font-weight: 600; }
+  dialog#inappDialog::backdrop { background: rgba(0,0,0,.45); }
+  dialog#inappDialog .dlg-title { font-weight: 700; font-size: 16px; margin: 0 0 10px; }
+  dialog#inappDialog p { font-size: 13.5px; line-height: 1.7; margin: 0 0 12px; color: #4a3b00; }
+  dialog#inappDialog .link { color: #8a5a00; font-weight: 600; }
+  dialog#inappDialog button.primary {
+    width: 100%; margin-top: 4px; padding: 9px 12px; border-radius: 8px; border: 1px solid #ff4b4b;
+    background: #ff4b4b; color: #fff; font-weight: 600; font-size: 14px; cursor: pointer;
+  }
+  dialog#inappDialog button.primary:hover { background: #e63c3c; }
   .gh-link {
     display: inline-flex; align-items: center; justify-content: center;
     width: 28px; height: 28px; margin: -2px 0; border-radius: 6px; color: #31333f;
@@ -180,12 +188,6 @@
       <div class="app-sub">※外部への送信はなくローカルで完結するツールです。ご利用前に<a href="#disclaimer">免責事項</a>をご覧ください。</div>
     </div>
 
-    <!-- X等のアプリ内ブラウザでは、スクショの選択（写真picker呼び出し）や送信・保存が
-         ブロックされることがある。ページ側からは解除できない制限のため、該当ブラウザを
-         検出したときだけ、最初の操作より前に静的な案内を出す（app.jsが表示切替）。 -->
-    <div class="hint" id="inappHint" hidden>
-      ※アプリ内のブラウザで開いている場合、スクショの選択や送信・保存がうまく動かないことがあります。その場合はアドレス欄そばの「…」メニューから「ブラウザで開く」を選んで開き直してください（<button type="button" class="link" id="inappCopy">リンクをコピー</button>してブラウザに貼り付けてもOKです）。
-    </div>
 
     <div class="section">
       <div class="shead">■ スクショを選択</div>
@@ -256,6 +258,16 @@
     <div id="status">左の「スクショを選ぶ」で画像を選ぶと、A4ページの割り付けがここに表示されます。</div>
     <div id="pages"></div>
   </main>
+
+  <!-- X等のアプリ内ブラウザでは、スクショの選択（写真picker呼び出し）や送信・保存がホストアプリ側で
+       ブロックされることがある。ページ側からは解除できない制限のため、開いた直後に一度ダイアログで
+       案内する（app.jsが表示・close処理を担当。file://のオフライン版では出さない）。 -->
+  <dialog id="inappDialog">
+    <div class="dlg-title">ご利用の前に</div>
+    <p>X（Twitter）などのアプリ内ブラウザで開いている場合、スクショの選択や送信・保存がうまく動かないことがあります。</p>
+    <p>その場合はアドレス欄そばの「…」メニューから「ブラウザで開く」を選んで開き直してください（<button type="button" class="link" id="inappCopy">リンクをコピー</button>してブラウザに貼り付けてもOKです）。</p>
+    <button type="button" class="primary" id="inappClose">閉じる</button>
+  </dialog>
 
   <script>
 "use strict";
@@ -349,17 +361,26 @@ shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
 // ---- アプリ内ブラウザ（X/Twitter等）向けの案内 ----
 // X等のSNSアプリ内蔵ブラウザは、ファイル選択・共有・ダウンロードをホストアプリ側でブロックして
 // いることがあり、これはページ側のJSからは解除できない（実機で「外部ブラウザへ自動で切り替える」
-// 系の手段を試したが反応しなかったため、無理に自動化はせず案内文に留める）。
+// 系の手段を試したが反応しなかったため、無理に自動化はせず案内に留める）。
 // UAでの機種判定は実機で2回とも外れた（該当環境のUAが想定パターンに一致しなかった）ため、
-// 判定はやめて常時表示にする（file://のオフライン版でだけ、無関係な案内なので出さない）。
-(function setupInAppHint() {
+// 判定はやめて開くたびに毎回ダイアログで案内する（常時表示の注意書きは廃止。
+// file://のオフライン版でだけ、無関係な案内なので出さない）。
+(function setupInAppDialog() {
   if (!/^https?:/.test(location.protocol)) return;   // file://（オフライン版）では出さない
 
-  const hintEl = $("inappHint");
+  const dialog = $("inappDialog");
   const copyBtn = $("inappCopy");
-  if (!hintEl || !copyBtn) return;
-  hintEl.hidden = false;
+  const closeBtn = $("inappClose");
+  if (!dialog || !copyBtn || !closeBtn) return;
 
+  closeBtn.onclick = () => dialog.close();
+  // 背景（枠外）タップでも閉じる。backdrop疑似要素はDOM上のヒットテスト対象にならないブラウザが
+  // あり e.target === dialog は当てにならないため、実際のクリック座標がdialogの矩形内かで判定する。
+  dialog.addEventListener("click", (e) => {
+    const r = dialog.getBoundingClientRect();
+    const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    if (!inside) dialog.close();
+  });
   copyBtn.onclick = async () => {
     const original = copyBtn.textContent;
     try {
@@ -370,6 +391,7 @@ shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
     }
     setTimeout(() => { copyBtn.textContent = original; }, 2500);
   };
+  dialog.showModal();
 })();
 
 // ---- ファイル選択 ----
