@@ -71,7 +71,10 @@
   .app-sub a:hover { text-decoration: underline; }
   .app-tagline { font-weight: 700; font-size: 15px; margin-bottom: 14px; }
   #secondary-info { display: flex; flex-direction: column; gap: 28px; }
-  .main #secondary-info { margin-top: 32px; }
+  /* shareSection・secondary-infoはモバイル幅ではサイドバーの外（.main内）へ移動する（app.js）。
+     サイドバー内なら.sidebarのgap:28pxが効くが、.main側に来ると効かなくなり直前の要素とくっつく
+     ため、ここで個別に上余白を補う。 */
+  .main #shareSection, .main #secondary-info { margin-top: 32px; }
   .section { display: flex; flex-direction: column; gap: 8px; }
   .row { display: flex; gap: 8px; }
   .sidebar .row button { width: auto; flex: 1 1 0; min-width: 0; }
@@ -182,6 +185,9 @@
     .sidebar { position: static; width: 100%; bottom: auto; }
     .main { margin-left: 0; padding: 16px 14px 60px; }
     .a4 { width: 100%; max-width: 340px; }
+    /* 「PDF作成」「PDF共有」は主要な操作なので、スマホではタップしやすいよう大きくする
+       （アイコンは.iconがem単位なのでfont-sizeに連動して一緒に大きくなる） */
+    #build, #share { padding: 14px 12px; font-size: 16px; }
   }
 </style>
 </head>
