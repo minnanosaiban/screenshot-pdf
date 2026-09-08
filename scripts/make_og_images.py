@@ -61,7 +61,7 @@ def make_square():
 def make_large():
     w, h = 1200, 630
     pad_x_title, pad_x_sub, gap = 90, 90, 40
-    title = "スクショ PDF化ツール"
+    title = "スクショPDF化ツール"
     subtitle = "スマホのスクショをA4のPDFにまとめて共有できます"
 
     scratch = ImageDraw.Draw(Image.new("RGB", (10, 10)))
