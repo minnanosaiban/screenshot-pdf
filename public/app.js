@@ -12,7 +12,6 @@ let files = [];          // 選択順のまま保持する File 配列（並べ�
 let objectUrls = [];     // files と対になるプレビュー用 objectURL（差し替え時に revoke する）
 let outputBlob = null;
 let building = false;
-let order = "N";         // 1ページ内（4枚）の並び順。"N"＝左上→左下→右上→右下（既定）、"Z"＝左上→右上→左下→右下
 
 // Web Share（ファイル共有）に対応しているブラウザかどうかは、ページ読み込み時に一度だけ判定して
 // ボタンの見た目を固定する。実際に使えるかの最終判定は共有ボタン押下時に navigator.canShare() で行う
@@ -47,7 +46,6 @@ const shareBtn = $("share");
 const shareHintEl = $("shareHint");
 const statusEl = $("status");
 const pagesEl = $("pages");
-const orderRadios = document.querySelectorAll('input[name="order"]');
 const compressChk = $("compress");
 
 const setStatus = (m) => { statusEl.textContent = m || ""; };
@@ -58,15 +56,29 @@ const scrollToMain = () => {
   if (mobileQuery.matches) statusEl.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 
-// 「このツールについて」「免責事項」は、モバイル幅では情報より先に操作・結果を見せたいので
-// プレビュー（本文）の下へ実際に移動し、デスクトップ幅ではサイドバー内の元の位置に戻す。
-// 複製はしない（免責事項へのリンク先要素が常に1つだけになるようにするため）。
+// モバイル幅では、要素を元のサイドバー内の並びと別の順序で見せたい：
+// - shareSection（PDFを作成して共有）: スクショを選んだ直後にプレビューへ自動スクロールする
+//   （scrollToMain）ため、サイドバー内の元の位置のままだと「共有ボタンの下に一瞬ジャンプする」
+//   ように見えて紛らわしい。プレビュー（#pages）の直後に置き、選択→プレビュー確認→作成、の順で
+//   迷わず進めるようにする。
+// - secondaryInfo（このツールについて／免責事項）: 情報より先に操作・結果を見せたいので本文の末尾へ。
+// デスクトップ幅ではどちらもサイドバー内の元の位置（この順）に戻す。複製はしない
+// （免責事項へのリンク先要素が常に1つだけになるようにするため）。
+const shareSection = $("shareSection");
 const secondaryInfo = $("secondary-info");
 const sidebarEl = document.querySelector(".sidebar");
 const mainEl = document.querySelector("main.main");
-const placeSecondaryInfo = () => (mobileQuery.matches ? mainEl : sidebarEl).appendChild(secondaryInfo);
-placeSecondaryInfo();
-mobileQuery.addEventListener("change", placeSecondaryInfo);
+const placeMovableSections = () => {
+  if (mobileQuery.matches) {
+    pagesEl.after(shareSection);          // プレビュー（#pages）の直後へ
+    mainEl.appendChild(secondaryInfo);    // 本文の末尾へ
+  } else {
+    sidebarEl.appendChild(secondaryInfo);                 // 先にサイドバー末尾へ戻す
+    sidebarEl.insertBefore(shareSection, secondaryInfo);   // 元の並び通り、その直前へ戻す
+  }
+};
+placeMovableSections();
+mobileQuery.addEventListener("change", placeMovableSections);
 
 // スマホでの利用が前提のため、主経路はメール・チャットへの直接送信（Web Share）。
 // 非対応ブラウザ（主にPCのFirefoxなど）のときだけ「保存」に文言を切り替える。
@@ -97,9 +109,8 @@ shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
   if (!/^https?:/.test(location.protocol)) return;   // file://（オフライン版）では出さない
 
   const dialog = $("inappDialog");
-  const copyBtn = $("inappCopy");
   const closeBtn = $("inappClose");
-  if (!dialog || !copyBtn || !closeBtn) return;
+  if (!dialog || !closeBtn) return;
 
   closeBtn.onclick = () => dialog.close();
   // 背景（枠外）タップでも閉じる。backdrop疑似要素はDOM上のヒットテスト対象にならないブラウザが
@@ -109,16 +120,6 @@ shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
     const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
     if (!inside) dialog.close();
   });
-  copyBtn.onclick = async () => {
-    const original = copyBtn.textContent;
-    try {
-      await navigator.clipboard.writeText(location.href);
-      copyBtn.textContent = "コピーしました";
-    } catch (err) {
-      copyBtn.textContent = "コピーできませんでした";
-    }
-    setTimeout(() => { copyBtn.textContent = original; }, 2500);
-  };
   dialog.showModal();
 })();
 
@@ -132,17 +133,6 @@ fileInput.onchange = (e) => {
 };
 clearBtn.onclick = () => clearAllFiles();
 
-// ---- 並び順（N型／Z型） ----
-orderRadios.forEach((r) => {
-  r.onchange = () => {
-    if (building || !r.checked) return;   // 同上：作成中の変更は無視
-    order = r.value;
-    outputBlob = null;
-    shareBtn.disabled = true;
-    renderPreview();
-  };
-});
-
 // ---- 軽量化（出力時に画像を圧縮するかどうか） ----
 // プレビューの見た目には影響しない（PDF作成時の埋め込み方法だけが変わる）ため renderPreview は呼ばない。
 compressChk.onchange = () => {
@@ -151,13 +141,9 @@ compressChk.onchange = () => {
   shareBtn.disabled = true;
 };
 
-// 1ページ内（4枚）でのグリッド位置(col:0=左/1=右, row:0=上/1=下)を、選択中の並び順から求める。
-// Z型：左上→右上→左下→右下（横方向優先、通常の読み順）
-// N型：左上→左下→右上→右下（縦方向優先。既定）
+// 1ページ内（4枚）でのグリッド位置(col:0=左/1=右, row:0=上/1=下)。並び順はN型固定：左上→左下→右上→右下。
 function cellPos(c) {
-  return order === "Z"
-    ? { col: c % 2, row: Math.floor(c / 2) }
-    : { col: Math.floor(c / 2), row: c % 2 };
+  return { col: Math.floor(c / 2), row: c % 2 };
 }
 
 // 選択された画像を既存の並びの末尾に追加する（総入れ替えはしない。全消去は clearAllFiles で行う）。
@@ -288,7 +274,6 @@ buildBtn.onclick = async () => {
   fileInput.disabled = true;
   clearBtn.disabled = true;
   compressChk.disabled = true;
-  orderRadios.forEach((r) => (r.disabled = true));
   pagesEl.classList.add("building");
   const n = files.length;
   const numPages = Math.ceil(n / 4);
@@ -331,7 +316,6 @@ buildBtn.onclick = async () => {
     fileInput.disabled = false;
     clearBtn.disabled = false;
     compressChk.disabled = false;
-    orderRadios.forEach((r) => (r.disabled = false));
     pagesEl.classList.remove("building");
   }
 };
