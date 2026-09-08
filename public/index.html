@@ -59,26 +59,31 @@
   .main #shareSection, .main #secondary-info { margin-top: 32px; }
   .section { display: flex; flex-direction: column; gap: 8px; }
   .row { display: flex; gap: 8px; }
-  .sidebar .row button { width: auto; flex: 1 1 0; min-width: 0; }
+  /* #shareSectionはモバイル幅で.sidebarの外（.main内）へ移動するため、以下のボタン系スタイルは
+     「.sidebar内」だけでなく「#shareSection内」でも効くように、両方を並記する。 */
+  .sidebar .row button, #shareSection .row button { width: auto; flex: 1 1 0; min-width: 0; }
   .shead { font-weight: 700; font-size: 15px; margin: 0 0 2px; }
   .cap { font-size: 12.5px; color: #6b6f76; margin: 4px 0 -2px; }
   .hint { font-size: 12.5px; color: #8a8f98; }
   .opt { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
   .opt input { accent-color: #ff4b4b; }
 
-  .sidebar .filebtn, .sidebar button, .sidebar input[type="text"] {
+  .sidebar .filebtn, .sidebar button, .sidebar input[type="text"],
+  #shareSection button {
     width: 100%; font-size: 14px; border-radius: 8px; border: 1px solid #d5d7dd;
     background: #fff; color: #31333f; font-family: inherit;
   }
-  .sidebar .filebtn, .sidebar button {
+  .sidebar .filebtn, .sidebar button, #shareSection button {
     padding: 9px 12px; cursor: pointer; font-weight: 500;
     display: flex; align-items: center; justify-content: center; gap: 7px;
   }
   .icon { width: 1em; height: 1em; flex: none; }
-  .sidebar .filebtn:hover, .sidebar button:hover:not(:disabled) { border-color: #ff4b4b; color: #ff4b4b; }
-  .sidebar button.primary { background: #ff4b4b; border-color: #ff4b4b; color: #fff; font-weight: 600; }
-  .sidebar button.primary:hover:not(:disabled) { background: #e63c3c; color: #fff; }
-  .sidebar button:disabled { opacity: .55; cursor: not-allowed; background: #f0f1f3; color: #31333f; }
+  .sidebar .filebtn:hover, .sidebar button:hover:not(:disabled),
+  #shareSection button:hover:not(:disabled) { border-color: #ff4b4b; color: #ff4b4b; }
+  .sidebar button.primary, #shareSection button.primary { background: #ff4b4b; border-color: #ff4b4b; color: #fff; font-weight: 600; }
+  .sidebar button.primary:hover:not(:disabled),
+  #shareSection button.primary:hover:not(:disabled) { background: #e63c3c; color: #fff; }
+  .sidebar button:disabled, #shareSection button:disabled { opacity: .55; cursor: not-allowed; background: #f0f1f3; color: #31333f; }
   .sidebar .filebtn:has(input:disabled) { opacity: .55; cursor: not-allowed; }
   .filebtn input { display: none; }
 
@@ -210,7 +215,7 @@
           </svg>
           <span>PDF作成</span>
         </button>
-        <button id="share" disabled></button><!-- 中身(アイコン・文言)はapp.jsが対応状況を見て設定 -->
+        <button id="share" class="primary" disabled></button><!-- 中身(アイコン・文言)はapp.jsが対応状況を見て設定 -->
       </div>
       <div class="hint">※メール・LINE・Xなどで共有できます</div>
       <div class="hint" id="shareHint"></div>
