@@ -4,6 +4,8 @@ const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
 const A4_W = 595.28, A4_H = 841.89;   // pt（1pt = 1/72inch）
 const MARGIN = 24, GUTTER = 16;       // pt
+// PDF全体をメモリ上で組み立てるため、スマホのタブが落ちないよう枚数に上限を設ける。
+const MAX_FILES = 40;
 const CELL_W = (A4_W - 2 * MARGIN - GUTTER) / 2;
 const CELL_H = (A4_H - 2 * MARGIN - GUTTER) / 2;
 
@@ -84,9 +86,8 @@ mobileQuery.addEventListener("change", placeMovableSections);
 // 非対応ブラウザ（主にPCのFirefoxなど）のときだけ「保存」に文言を切り替える。
 // ※ shareBtn.textContent は後続コードでもラベル文言の取得に使う（SVGはテキストノードを持たないため、
 //    innerHTML に <svg>+<span> を入れても textContent は <span> の文字列だけを正しく返す）。
-shareBtn.innerHTML = shareApiPresent
-  ? `${ICON_SEND}<span>PDF共有</span>`
-  : `${ICON_DOWNLOAD}<span>PDF保存</span>`;
+const shareLabel = shareApiPresent ? "PDF共有" : "PDF保存";
+shareBtn.innerHTML = `${shareApiPresent ? ICON_SEND : ICON_DOWNLOAD}<span>${shareLabel}</span>`;
 // 「メール・LINE・Xなどで共有できます」は常時表示の固定文言(HTML側)なので、ここでは
 // 共有できない場合の注記だけを出す。共有できる場合は固定文言だけで説明が足りるため空にする。
 // 表示できない理由がHTTP接続(非セキュアコンテキスト)かブラウザ非対応かはsecureContextで
@@ -112,6 +113,13 @@ shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
   const closeBtn = $("inappClose");
   if (!dialog || !closeBtn) return;
 
+  // 一度閉じたら次回以降は出さない（localStorageが使えない環境では毎回出す）
+  const SEEN_KEY = "inappDialogSeen";
+  try { if (localStorage.getItem(SEEN_KEY)) return; } catch (e) { /* 使えなければ毎回表示 */ }
+  dialog.addEventListener("close", () => {
+    try { localStorage.setItem(SEEN_KEY, "1"); } catch (e) { /* 無視 */ }
+  });
+
   closeBtn.onclick = () => dialog.close();
   // 背景（枠外）タップでも閉じる。backdrop疑似要素はDOM上のヒットテスト対象にならないブラウザが
   // あり e.target === dialog は当てにならないため、実際のクリック座標がdialogの矩形内かで判定する。
@@ -120,7 +128,8 @@ shareHintEl.style.display = shareHintEl.textContent ? "" : "none";
     const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
     if (!inside) dialog.close();
   });
-  dialog.showModal();
+  // 古いブラウザは <dialog> 非対応で showModal が無く、例外で以降の初期化が止まるため握りつぶす
+  try { dialog.showModal(); } catch (e) { console.warn("案内ダイアログを表示できません:", e); }
 })();
 
 // ---- ファイル選択 ----
@@ -137,6 +146,7 @@ clearBtn.onclick = () => clearAllFiles();
 // プレビューの見た目には影響しない（PDF作成時の埋め込み方法だけが変わる）ため renderPreview は呼ばない。
 compressChk.onchange = () => {
   if (building) return;   // 同上：作成中の変更は無視
+  if (outputBlob) setStatus("軽量化の設定を変えたため、もう一度「PDF作成」を押してください。");
   outputBlob = null;
   shareBtn.disabled = true;
 };
@@ -149,13 +159,31 @@ function cellPos(c) {
 // 選択された画像を既存の並びの末尾に追加する（総入れ替えはしない。全消去は clearAllFiles で行う）。
 function addFiles(list) {
   if (building) return;   // 同上：作成中の再選択は無視（inputはbuild中disabledにしているので通常は来ない）
-  const imgs = list.filter((f) => f.type.startsWith("image/"));
-  if (imgs.length === 0) return;   // 画像以外だけを選んだ／ダイアログをキャンセルした場合は何もしない
+  if (list.length === 0) return;   // ダイアログをキャンセルした場合は何もしない
+  // HEIC等で file.type が空になる環境があるため、拡張子でも画像と判定する
+  const isImage = (f) => f.type.startsWith("image/") || (!f.type && /\.(png|jpe?g|webp|gif|bmp|heic|heif|avif)$/i.test(f.name));
+  let imgs = list.filter(isImage);
+  const skipped = list.length - imgs.length;
+  if (imgs.length === 0) {
+    setStatus("画像ファイルが選ばれていないため、追加されませんでした。");
+    return;
+  }
+  const room = MAX_FILES - files.length;
+  if (room <= 0) {
+    setStatus(`一度に扱えるのは${MAX_FILES}枚までです。「全部やり直す」で減らしてから追加してください。`);
+    return;
+  }
+  const overflow = Math.max(0, imgs.length - room);
+  imgs = imgs.slice(0, room);
   files = files.concat(imgs);
   objectUrls = objectUrls.concat(imgs.map((f) => URL.createObjectURL(f)));
   outputBlob = null;
   shareBtn.disabled = true;
   renderPreview();
+  const notes = [];
+  if (skipped > 0) notes.push(`画像以外の${skipped}件は除外しました`);
+  if (overflow > 0) notes.push(`上限${MAX_FILES}枚を超えた${overflow}枚は追加していません`);
+  if (notes.length) setStatus(statusEl.textContent + "（" + notes.join("、") + "）");
   scrollToMain();
 }
 
@@ -306,7 +334,7 @@ buildBtn.onclick = async () => {
     outputBlob = new Blob([bytes], { type: "application/pdf" });
     shareBtn.disabled = false;
     const compressNote = compress ? (compressedCount > 0 ? `（${compressedCount}枚を軽量化）` : "（対象なし・元のまま）") : "";
-    setStatus(`完了：${n}枚を${numPages}ページのA4 PDFにまとめました${compressNote}。左の「${shareBtn.textContent}」をタップしてください。`);
+    setStatus(`完了：${n}枚を${numPages}ページのA4 PDFにまとめました${compressNote}。左の「${shareLabel}」をタップしてください。`);
   } catch (err) {
     console.error(err);
     setStatus("PDFの作成に失敗しました。画像の形式を確認するか、枚数を減らしてもう一度お試しください。");
@@ -336,9 +364,15 @@ async function embedImage(doc, file, compress) {
   const embedOriginal = async () => {
     try {
       if (type === "image/png") return await doc.embedPng(buf);
-      if (type === "image/jpeg" || type === "image/jpg") return await doc.embedJpg(buf);
+      if (type === "image/jpeg") {
+        // embedJpg は EXIF の回転情報を無視する（プレビューの<img>は回転して表示される）ため、
+        // 回転が必要なJPEGは canvas 経由（回転適用済み）で埋め込んでプレビューと向きを揃える。
+        if (jpegOrientation(buf) <= 1) return await doc.embedJpg(buf);
+        return await doc.embedJpg(await toCompressedJpegBytes(file, Infinity, 0.95));
+      }
     } catch (err) {
       // 拡張子とヘッダが食い違っている等、そのまま埋め込めなかった場合は下のcanvas変換にフォールバック
+      console.warn("そのまま埋め込めなかったため変換します:", file.name, err);
     }
     return await doc.embedPng(await toPngBytes(file));
   };
@@ -348,20 +382,60 @@ async function embedImage(doc, file, compress) {
       if (jpegBytes.length < buf.length) return { img: await doc.embedJpg(jpegBytes), compressed: true };
     } catch (err) {
       // 圧縮候補の生成に失敗した場合は無劣化埋め込みにフォールバック
+      console.warn("軽量化に失敗したため元のまま埋め込みます:", file.name, err);
     }
   }
   return { img: await embedOriginal(), compressed: false };
 }
 
+// JPEGのEXIF Orientation（1〜8）を返す。無い／読めない場合は1。
+function jpegOrientation(u8) {
+  if (u8.length < 4 || u8[0] !== 0xff || u8[1] !== 0xd8) return 1;
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  let off = 2;
+  while (off + 4 <= dv.byteLength) {
+    if (dv.getUint8(off) !== 0xff) return 1;
+    const marker = dv.getUint8(off + 1);
+    if (marker === 0xda || marker === 0xd9) return 1;   // 画像データ開始＝EXIFなし
+    const len = dv.getUint16(off + 2);
+    if (marker === 0xe1 && off + 10 <= dv.byteLength && dv.getUint32(off + 4) === 0x45786966) {   // "Exif"
+      const t = off + 10;   // TIFFヘッダ先頭
+      if (t + 8 > dv.byteLength) return 1;
+      const le = dv.getUint16(t) === 0x4949;
+      const ifd = t + dv.getUint32(t + 4, le);
+      if (ifd + 2 > dv.byteLength) return 1;
+      const n = dv.getUint16(ifd, le);
+      for (let k = 0; k < n; k++) {
+        const e = ifd + 2 + k * 12;
+        if (e + 12 > dv.byteLength) return 1;
+        if (dv.getUint16(e, le) === 0x0112) {
+          const v = dv.getUint16(e + 8, le);
+          return v >= 1 && v <= 8 ? v : 1;
+        }
+      }
+      return 1;
+    }
+    off += 2 + len;
+  }
+  return 1;
+}
+
+// EXIFの回転を適用した状態でデコードする（既定値に依存せず明示する）
+const decodeBitmap = (file) => createImageBitmap(file, { imageOrientation: "from-image" });
+
 async function toPngBytes(file) {
-  const bitmap = await createImageBitmap(file);
-  const c = document.createElement("canvas");
-  c.width = bitmap.width;
-  c.height = bitmap.height;
-  c.getContext("2d").drawImage(bitmap, 0, 0);
-  bitmap.close();
-  const blob = await new Promise((res) => c.toBlob(res, "image/png"));
-  return new Uint8Array(await blob.arrayBuffer());
+  const bitmap = await decodeBitmap(file);
+  try {
+    const c = document.createElement("canvas");
+    c.width = bitmap.width;
+    c.height = bitmap.height;
+    c.getContext("2d").drawImage(bitmap, 0, 0);
+    const blob = await new Promise((res) => c.toBlob(res, "image/png"));
+    if (!blob) throw new Error("PNG変換に失敗しました");
+    return new Uint8Array(await blob.arrayBuffer());
+  } finally {
+    bitmap.close();
+  }
 }
 
 // 軽量化用の長辺上限(px)とJPEG品質。1コマは A4を2×2分割したセル（約3.7×5.4cm）にしか
@@ -370,19 +444,24 @@ async function toPngBytes(file) {
 const COMPRESS_MAX_EDGE = 1600;
 const COMPRESS_QUALITY = 0.82;
 
-async function toCompressedJpegBytes(file) {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, COMPRESS_MAX_EDGE / Math.max(bitmap.width, bitmap.height));
-  const w = Math.max(1, Math.round(bitmap.width * scale));
-  const h = Math.max(1, Math.round(bitmap.height * scale));
-  const c = document.createElement("canvas");
-  c.width = w; c.height = h;
-  const cx = c.getContext("2d");
-  cx.fillStyle = "#fff"; cx.fillRect(0, 0, w, h);   // JPEGは透過非対応のため、下地を白で塗ってから描画する
-  cx.drawImage(bitmap, 0, 0, w, h);
-  bitmap.close();
-  const blob = await new Promise((res) => c.toBlob(res, "image/jpeg", COMPRESS_QUALITY));
-  return new Uint8Array(await blob.arrayBuffer());
+// maxEdge=Infinity で原寸のまま（回転適用＋JPEG化のみ）
+async function toCompressedJpegBytes(file, maxEdge = COMPRESS_MAX_EDGE, quality = COMPRESS_QUALITY) {
+  const bitmap = await decodeBitmap(file);
+  try {
+    const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const cx = c.getContext("2d");
+    cx.fillStyle = "#fff"; cx.fillRect(0, 0, w, h);   // JPEGは透過非対応のため、下地を白で塗ってから描画する
+    cx.drawImage(bitmap, 0, 0, w, h);
+    const blob = await new Promise((res) => c.toBlob(res, "image/jpeg", quality));
+    if (!blob) throw new Error("JPEG変換に失敗しました");
+    return new Uint8Array(await blob.arrayBuffer());
+  } finally {
+    bitmap.close();
+  }
 }
 
 // セル内に、アスペクト比を保ったまま収まる最大サイズで中央配置する（fit / contain）
@@ -401,7 +480,7 @@ function drawIndexBadge(page, font, n, cellLeft, cellTop) {
   page.drawCircle({
     x: cx, y: cy, size: BADGE_R,
     color: rgb(1, 1, 1), opacity: 0.9,
-    borderColor: rgb(0.75, 0.75, 0.75), borderWidth: 0.75,
+    borderColor: rgb(0.75, 0.75, 0.75), borderWidth: 0.75, borderOpacity: 0.9,
   });
   const label = String(n);
   const fontSize = 9;
@@ -428,6 +507,8 @@ shareBtn.onclick = async () => {
     } catch (err) {
       if (err && err.name === "AbortError") return;   // 共有シートをキャンセルした場合は何もしない
       // それ以外の失敗（対応アプリがない等）はダウンロードへフォールバック
+      console.warn("共有に失敗したため保存します:", err);
+      setStatus("共有できなかったため、PDFを保存しました。保存したファイルをメール等に添付してください。");
     }
   }
   downloadBlob(outputBlob, filename);

@@ -26,8 +26,9 @@
 <meta name="twitter:title" content="スクショPDF化ツール">
 <meta name="twitter:description" content="スマホのスクショをA4のPDFにまとめて、そのままメール・チャットで共有できるツールです。送信なし・ローカルで完結、オフライン版もあります。">
 <meta name="twitter:image" content="https://screenshot-pdf.pages.dev/og-image-large.png">
-<!-- PDF生成のみ利用。画像・PDFはどこにも送信されません。読み込むのはライブラリのJSだけです。 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<!-- PDF生成ライブラリ(pdf-lib 1.17.1)は同一オリジンから配信する（外部CDNに依存・改ざんされないようにするため）。
+     public/pdf-lib.min.js は vendor/ からビルド時にコピーされる(npm run build:offline)。画像・PDFはどこにも送信されません。 -->
+<script src="pdf-lib.min.js"></script>
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; }

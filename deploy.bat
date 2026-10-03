@@ -37,8 +37,9 @@ if %errorlevel% neq 0 (
 )
 
 echo === Commit ^& Push to GitHub (main) ===
-git add .
-git commit -m "Update screenshot-pdf" || echo No changes to commit
+git add -A
+for /f "delims=" %%t in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd_HH:mm"') do set STAMP=%%t
+git commit -m "Deploy screenshot-pdf %STAMP%" || echo No changes to commit
 git push -u origin main
 if %errorlevel% neq 0 (
     echo [WARN] Git push failed. The Cloudflare deploy itself succeeded.

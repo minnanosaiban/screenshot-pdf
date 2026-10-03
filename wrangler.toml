@@ -5,5 +5,5 @@ pages_build_output_dir = "public"
 # このツールは完全にローカルで完結する静的サイト。
 # サーバーレス関数(functions/)も D1 も不要。
 #
-# 本人・関係者だけに限定公開したい場合は、court-calendar と同様に
+# 本人・関係者だけに限定公開したい場合は、
 # Cloudflare Access（Google ログイン）をダッシュボードで前段に噛ませる。
