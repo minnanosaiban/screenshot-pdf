@@ -26,7 +26,9 @@ fs.copyFileSync(path.join(VENDOR, "pdf-lib.min.js"), path.join(PUBLIC, "pdf-lib.
 const LIB_SCRIPT_TAG = '<script src="pdf-lib.min.js"></script>';
 const APP_SCRIPT_TAG = '<script src="app.js"></script>';
 const TITLE_TAG = "<title>スクショPDF化</title>";
-const FAVICON_TAG = '<link rel="icon" type="image/svg+xml" href="favicon.svg">';
+const FAVICON_TAG = '<link rel="icon" href="favicon.svg" type="image/svg+xml">';
+// Google 向けの png/ico の link はオフライン版では不要（相対参照は file:// 単体配布で切れる）ので取り除く
+const FAVICON_EXTRA_RE = /\r?\n<link rel="icon" href="favicon\.(?:png|ico)"[^>]*>/g;
 const PRIVACY_TEXT = "処理はお使いのローカルで完結し画像・PDFは外部送信されませんが、";
 
 // String.replace は一致しなくても黙って素通りするため、置換対象が必ず存在することを先に確認する
@@ -53,6 +55,7 @@ out = out.replace(TITLE_TAG, () => "<title>スクショPDF化（オフライン�
 // favicon も外部ファイル参照だと file:// 単体配布時に読み込めないため data URI に埋め込む
 const faviconDataUri = `data:image/svg+xml;base64,${favicon.toString("base64")}`;
 out = out.replace(FAVICON_TAG, () => `<link rel="icon" type="image/svg+xml" href="${faviconDataUri}">`);
+out = out.replace(FAVICON_EXTRA_RE, () => "");
 // オフライン版自身の中に「オフライン版をダウンロード」リンク（自己参照）は不要なので取り除く
 out = out.replace(OFFLINE_LINK_RE, () => "");
 out = out.replace(
